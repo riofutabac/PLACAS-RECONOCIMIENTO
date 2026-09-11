@@ -64,6 +64,46 @@ def elegir_proveedores(modo: str, disponibles: Sequence[str] = None) -> Tuple[st
     return (gpus + (PROVEEDOR_CPU,)) if gpus else (PROVEEDOR_CPU,)
 
 
+def proveedores_activos(objeto) -> Tuple[str, ...]:
+    """Proveedores que la sesión ONNX está usando realmente.
+
+    Pedir un proveedor no garantiza obtenerlo: si las librerías de la tarjeta
+    no coinciden con la versión de onnxruntime, la carga falla y el trabajo
+    sigue en procesador sin aviso. Este es el único dato fiable.
+    """
+    for atributo in ("model", "session", "_session", "ort_session"):
+        sesion = getattr(objeto, atributo, None)
+        if sesion is not None and hasattr(sesion, "get_providers"):
+            return tuple(sesion.get_providers())
+    return ()
+
+
+def confirmar_gpu_activa(objeto, modo: str) -> Tuple[bool, str]:
+    """Comprueba que la GPU pedida esté realmente en uso.
+
+    Devuelve si está activa y un mensaje explicativo. En modo 'gpu' el
+    llamador debe detenerse cuando no lo está: procesar decenas de horas
+    creyendo usar la tarjeta es peor que fallar de entrada.
+    """
+    activos = proveedores_activos(objeto)
+    if not activos:
+        return False, "No se pudo determinar el proveedor en uso."
+
+    usa_gpu = any(p in activos for p in PROVEEDORES_GPU)
+    if usa_gpu:
+        return True, f"GPU activa: {activos[0]}"
+
+    if modo == MODO_CPU:
+        return False, "Procesando en CPU, como se solicitó."
+
+    return False, (
+        "Se solicitó GPU pero la sesión quedó en procesador. "
+        f"Proveedores activos: {activos}. "
+        "Causa habitual: la version de onnxruntime-gpu no coincide con la "
+        "version de CUDA instalada. Reinstale la que corresponda."
+    )
+
+
 def describir(proveedores: Sequence[str]) -> str:
     """Texto corto para informar al usuario qué se está usando."""
     if not proveedores:

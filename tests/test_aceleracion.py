@@ -54,3 +54,67 @@ def test_descripcion_legible():
     """El usuario debe poder ver con qué se está procesando."""
     assert "GPU" in describir(elegir_proveedores("auto", CON_GPU))
     assert "CPU" in describir(elegir_proveedores("auto", SIN_GPU))
+
+
+class _SesionFalsa:
+    def __init__(self, proveedores):
+        self._proveedores = proveedores
+
+    def get_providers(self):
+        return list(self._proveedores)
+
+
+class _ModeloFalso:
+    def __init__(self, proveedores):
+        self.model = _SesionFalsa(proveedores)
+
+
+def test_lee_los_proveedores_realmente_activos():
+    """El proveedor en uso se consulta a la sesión, no a lo solicitado."""
+    from lastre.aceleracion import proveedores_activos
+
+    assert proveedores_activos(_ModeloFalso(CON_GPU)) == CON_GPU
+
+
+def test_detecta_la_caida_silenciosa_a_procesador():
+    """Pedir GPU y terminar en CPU debe reportarse, no pasar inadvertido.
+
+    Reproduce el caso real de Colab: onnxruntime-gpu compilado para otra
+    version de CUDA carga mal y el trabajo sigue en procesador sin aviso.
+    """
+    from lastre.aceleracion import confirmar_gpu_activa
+
+    activa, mensaje = confirmar_gpu_activa(_ModeloFalso((PROVEEDOR_CPU,)), "gpu")
+
+    assert not activa
+    assert "onnxruntime-gpu" in mensaje
+
+
+def test_confirma_la_gpu_cuando_esta_en_uso():
+    """Con la GPU realmente activa el mensaje lo confirma."""
+    from lastre.aceleracion import confirmar_gpu_activa
+
+    activa, mensaje = confirmar_gpu_activa(_ModeloFalso(CON_GPU), "gpu")
+
+    assert activa
+    assert "GPU activa" in mensaje
+
+
+def test_modo_procesador_no_reporta_problema():
+    """Quien pidió procesador no debe recibir una advertencia."""
+    from lastre.aceleracion import confirmar_gpu_activa
+
+    activa, mensaje = confirmar_gpu_activa(_ModeloFalso((PROVEEDOR_CPU,)), "cpu")
+
+    assert not activa
+    assert "como se solicitó" in mensaje
+
+
+def test_objeto_sin_sesion_no_rompe():
+    """Un objeto que no expone sesión se informa sin lanzar excepción."""
+    from lastre.aceleracion import confirmar_gpu_activa
+
+    activa, mensaje = confirmar_gpu_activa(object(), "auto")
+
+    assert not activa
+    assert "No se pudo determinar" in mensaje

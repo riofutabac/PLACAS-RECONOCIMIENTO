@@ -30,6 +30,7 @@ from lastre.lectura import Lectura, consolidar_lecturas
 from lastre.placa import LectorPlacas, PlacaError
 from lastre.progreso import Progreso
 from lastre.registro import registrar_vehiculos
+from lastre.reloj import RelojError, cargar_plantillas, leer_marca, rango_de_nombre
 from lastre.seguimiento import SeguidorTrayectorias
 from lastre.vehiculos import DetectorHibrido, DetectorVehiculos
 from lastre.video import iterar_cuadros, obtener_metadatos_video, VideoLecturaError
@@ -91,7 +92,8 @@ def inicio_de_grabacion(nombre: str):
         return None
 
 
-def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedores):
+def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedores,
+                   plantillas_reloj=None):
     """Detecta, sigue y lee las placas de un video. Devuelve sus filas."""
     metadatos = obtener_metadatos_video(ruta)
     fps = metadatos.fps or 25.0
@@ -106,8 +108,17 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     trayectorias = []
     cuadros_guardados = {}
     ultimo_informe = time.time()
+    marca_referencia = None
 
     for numero, cuadro in iterar_cuadros(ruta):
+        # La hora real proviene del reloj impreso por la camara. El nombre del
+        # archivo codifica el rango de toda la grabacion, no el inicio de este
+        # fragmento, y usarlo desplazaba cada registro varias horas.
+        if plantillas_reloj is not None and marca_referencia is None:
+            momento = leer_marca(cuadro, plantillas_reloj)
+            if momento is not None:
+                marca_referencia = (numero, momento)
+
         detecciones = tuple(d.como_deteccion for d in detector.detectar(cuadro))
         trayectorias.extend(seguidor.actualizar(numero, detecciones))
 
@@ -129,7 +140,6 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
         desplazamiento_minimo=150,
     )
 
-    inicio = inicio_de_grabacion(ruta.name)
     crudos = []
 
     for indice, vehiculo in enumerate(vehiculos):
@@ -184,8 +194,10 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     filas = []
     for final in finales:
         segundos = final.cuadro / fps
-        if inicio:
-            hora = (inicio + timedelta(seconds=segundos)).strftime("%Y-%m-%d %H:%M:%S")
+        if marca_referencia is not None:
+            cuadro_ref, momento_ref = marca_referencia
+            hora = (momento_ref + timedelta(seconds=(final.cuadro - cuadro_ref) / fps)
+                    ).strftime("%Y-%m-%d %H:%M:%S")
         else:
             hora = ""
         filas.append({
@@ -269,6 +281,14 @@ def main():
         return
 
     try:
+        plantillas_reloj = cargar_plantillas()
+        print("Reloj: plantillas de digitos cargadas")
+    except RelojError as err:
+        plantillas_reloj = None
+        print(f"Aviso: {err}", file=sys.stderr)
+        print("Los registros quedaran sin hora real.", file=sys.stderr)
+
+    try:
         lector = LectorPlacas(proveedores=proveedores)
     except PlacaError as err:
         print(f"Error al iniciar el lector de placas: {err}", file=sys.stderr)
@@ -285,7 +305,7 @@ def main():
         print(f"\n--- {video.name} ---", flush=True)
         try:
             filas = procesar_video(video, config, lector, progreso, args,
-                                   dir_recortes, proveedores)
+                                   dir_recortes, proveedores, plantillas_reloj)
             cuadros = obtener_metadatos_video(video).total_cuadros
             avance.guardar_video(video.name, filas, cuadros=cuadros)
             print(f"    {len(filas)} vehiculos registrados y guardados", flush=True)
