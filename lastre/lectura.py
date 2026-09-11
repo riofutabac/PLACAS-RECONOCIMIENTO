@@ -47,6 +47,7 @@ class ResultadoPlaca:
     estado: str
     imagen_recorte: str
     confianza_minima: float = 0.0
+    dominancia: float = 0.0
 
     @property
     def requiere_revision(self) -> bool:
@@ -65,6 +66,7 @@ def _sin_placa() -> ResultadoPlaca:
         estado=ESTADO_SIN_PLACA,
         imagen_recorte="",
         confianza_minima=0.0,
+        dominancia=0.0,
     )
 
 
@@ -72,6 +74,7 @@ def consolidar_lecturas(
     lecturas: Sequence[Lectura],
     umbral_confianza: float,
     minimo_coincidencias: int,
+    dominancia_minima: float = 0.5,
 ) -> ResultadoPlaca:
     """Elige la placa más votada entre las lecturas, ponderando por confianza.
 
@@ -84,6 +87,10 @@ def consolidar_lecturas(
         raise LecturaError(f"umbral_confianza debe estar entre 0 y 1, se recibió: {umbral_confianza}")
     if minimo_coincidencias < 1:
         raise LecturaError(f"minimo_coincidencias debe ser >= 1, se recibió: {minimo_coincidencias}")
+    if not 0.0 <= dominancia_minima <= 1.0:
+        raise LecturaError(
+            f"dominancia_minima debe estar entre 0 y 1, se recibió: {dominancia_minima}"
+        )
 
     votos = defaultdict(float)
     apoyos = defaultdict(list)
@@ -111,12 +118,18 @@ def consolidar_lecturas(
     # un cuadro nítido para dar la placa por buena, aunque otros salgan borrosos.
     peor_caracter = max(l.confianza_del_peor_caracter for l in soporte)
 
+    # Cuánto del voto total se lleva la ganadora. Si el motor produjo muchos
+    # textos distintos, ninguno merece darse por seguro aunque uno gane: es
+    # señal de que la placa no se ve bien, no de que esa sea la correcta.
+    dominancia = votos[ganadora] / sum(votos.values())
+
     alcanza_umbral = confianza >= umbral_confianza
     alcanza_apoyo = len(soporte) >= minimo_coincidencias
     sin_caracter_dudoso = peor_caracter >= umbral_confianza
+    hay_consenso = dominancia >= dominancia_minima
     estado = (
         ESTADO_VALIDADO
-        if (alcanza_umbral and alcanza_apoyo and sin_caracter_dudoso)
+        if (alcanza_umbral and alcanza_apoyo and sin_caracter_dudoso and hay_consenso)
         else ESTADO_PENDIENTE
     )
 
@@ -129,4 +142,5 @@ def consolidar_lecturas(
         estado=estado,
         imagen_recorte=mejor.imagen_recorte,
         confianza_minima=round(peor_caracter, 4),
+        dominancia=round(dominancia, 4),
     )

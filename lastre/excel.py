@@ -33,6 +33,7 @@ COLUMNAS = (
     ("tipo_vehiculo", "Tipo", 12),
     ("sentido", "Sentido", 11),
     ("confianza", "Confianza", 11),
+    ("consenso", "Consenso", 11),
     ("lecturas", "Lecturas", 10),
     ("estado", "Estado", 22),
 )

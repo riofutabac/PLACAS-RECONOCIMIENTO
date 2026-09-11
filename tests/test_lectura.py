@@ -182,3 +182,47 @@ def test_si_ninguna_lectura_es_nitida_queda_pendiente():
     resultado = consolidar_lecturas(lecturas, UMBRAL, MINIMO)
 
     assert resultado.estado == ESTADO_PENDIENTE
+
+
+def test_muchos_textos_distintos_impiden_validar():
+    """Si el motor produce lecturas dispares, ninguna merece darse por segura.
+
+    Reproduce el caso real de PCW-2497: el motor devolvio PCM7497, PCM2497,
+    PKM5757 y otras variantes. Que una gane no significa que sea correcta;
+    la dispersion misma indica que la placa no se ve bien.
+    """
+    lecturas = (
+        [Lectura(cuadro=i, texto="PCM7497", confianza=0.93, confianza_minima=0.88)
+         for i in range(4)]
+        + [Lectura(cuadro=10 + i, texto="PCM2497", confianza=0.90, confianza_minima=0.80)
+           for i in range(3)]
+        + [Lectura(cuadro=20 + i, texto="PKM5757", confianza=0.85, confianza_minima=0.80)
+           for i in range(3)]
+    )
+
+    resultado = consolidar_lecturas(lecturas, UMBRAL, MINIMO)
+
+    assert resultado.placa == "PCM7497"
+    assert resultado.estado == ESTADO_PENDIENTE
+    assert resultado.dominancia < 0.5
+
+
+def test_consenso_amplio_permite_validar():
+    """Cuando casi todas las lecturas coinciden, la placa se valida."""
+    lecturas = (
+        [Lectura(cuadro=i, texto="TAA2204", confianza=0.95, confianza_minima=0.90)
+         for i in range(9)]
+        + [Lectura(cuadro=99, texto="TAA2284", confianza=0.70, confianza_minima=0.60)]
+    )
+
+    resultado = consolidar_lecturas(lecturas, UMBRAL, MINIMO)
+
+    assert resultado.placa == "TAA2204"
+    assert resultado.estado == ESTADO_VALIDADO
+    assert resultado.dominancia > 0.8
+
+
+def test_dominancia_invalida_se_rechaza():
+    """El parámetro de consenso fuera de rango se rechaza."""
+    with pytest.raises(LecturaError, match="dominancia_minima"):
+        consolidar_lecturas([], UMBRAL, MINIMO, dominancia_minima=1.5)
