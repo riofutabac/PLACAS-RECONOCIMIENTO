@@ -1,0 +1,81 @@
+{
+  "dimensiones": {
+    "ancho": 2960,
+    "alto": 1664
+  },
+  "poligono": [
+    [
+      1484,
+      636
+    ],
+    [
+      1750,
+      696
+    ],
+    [
+      1854,
+      858
+    ],
+    [
+      1913,
+      1066
+    ],
+    [
+      2076,
+      1302
+    ],
+    [
+      2372,
+      1554
+    ],
+    [
+      2579,
+      1664
+    ],
+    [
+      370,
+      1664
+    ],
+    [
+      340,
+      1125
+    ],
+    [
+      622,
+      918
+    ],
+    [
+      1036,
+      770
+    ],
+    [
+      1332,
+      681
+    ]
+  ],
+  "banda_reloj": {
+    "alto": 100
+  },
+  "segmento_salida": {
+    "punto_inicio": [
+      622,
+      1200
+    ],
+    "punto_fin": [
+      2050,
+      1200
+    ]
+  },
+  "deteccion": {
+    "area_minima": 3000
+  },
+  "seguimiento": {
+    "distancia_maxima": 400,
+    "tolerancia_oclusion": 25,
+    "minimo_cuadros": 15
+  },
+  "consolidacion": {
+    "ventana_cuadros": 200,
+    "distancia_maxima": 1200
+  }
+}

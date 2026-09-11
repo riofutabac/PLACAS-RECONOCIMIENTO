@@ -1,0 +1,16 @@
+{
+  "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+  "revisado_por": "analista",
+  "metodo": "revision manual del video completo",
+  "rango_reloj": "16:17:17 a 16:22:47",
+  "total_vehiculos": 5,
+  "salidas": 1,
+  "entradas": 4,
+  "vehiculos": [
+    {"hora": "16:17:34", "tipo": "automovil", "sentido": "sale", "nota": "Chevrolet Aveo gris"},
+    {"hora": "16:19:01", "tipo": "camion", "sentido": "entra", "nota": "cisterna de agua"},
+    {"hora": "16:19:11", "tipo": "automovil", "sentido": "entra", "nota": "camioneta"},
+    {"hora": "16:19:17", "tipo": "motocicleta", "sentido": "entra", "nota": "casi junto a los dos anteriores"},
+    {"hora": "16:21:45", "tipo": "automovil", "sentido": "entra", "nota": "ultima camioneta"}
+  ]
+}

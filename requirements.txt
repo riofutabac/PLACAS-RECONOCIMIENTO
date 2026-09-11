@@ -1,0 +1,20 @@
+# Requiere Python 3.12. En 3.14 no existe onnxruntime y nada de esto funciona.
+#
+# Para GPU (Google Colab), sustituya onnxruntime por onnxruntime-gpu:
+#   pip uninstall -y onnxruntime && pip install onnxruntime-gpu
+# Ambos paquetes no pueden convivir: si queda el primero, la GPU nunca se usa.
+
+opencv-python==5.0.0.93
+numpy==2.5.3
+
+# Deteccion de vehiculos y lectura de placas
+fast-alpr==0.4.0
+open-image-models==0.6.0
+onnxruntime==1.23.2
+
+# Listado final en Excel con imagenes incrustadas
+openpyxl==3.1.5
+pillow==12.3.0
+
+# Pruebas
+pytest==9.1.1

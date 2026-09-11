@@ -1,0 +1,35 @@
+# Entornos virtuales de Python
+.venv/
+.venv312/
+venv/
+env/
+
+# Cache y compilados de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Videos: pesan cientos de megabytes y no pertenecen al repositorio
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Salidas generadas por los scripts
+out/
+out_v2/
+output/
+informe/
+prueba_lote/
+resultado/
+resultado_v2/
+resultado_v3/
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
