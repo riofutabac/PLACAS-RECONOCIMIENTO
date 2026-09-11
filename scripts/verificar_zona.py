@@ -1,10 +1,12 @@
 """Script para generar la imagen de verificación con la delimitación de la zona superpuesta.
 
 Uso:
-    python scripts/verificar_zona.py <video> --frame <numero_cuadro> [--config <ruta_config>] [--output <ruta_salida>]
+    python scripts/verificar_zona.py <video> [--frame <numero>] [--config <ruta>] [--output <ruta>]
+
+Sin --frame toma un cuadro hacia la mitad del video, que siempre existe.
 
 Ejemplo:
-    python scripts/verificar_zona.py "Camara Placas 2_20260909105651-20260909163038(60).mp4" --frame 2697
+    python scripts/verificar_zona.py "Camara Placas 2_20260909105651-20260909163038(60).mp4"
 """
 
 import argparse
@@ -17,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import cv2
 
 from lastre.config import cargar_configuracion, ConfiguracionError
-from lastre.video import leer_cuadro_especifico, VideoLecturaError
+from lastre.video import leer_cuadro_especifico, obtener_metadatos_video, VideoLecturaError
 from lastre.zona import superponer_zona
 
 
@@ -35,8 +37,8 @@ def parse_args():
         "--frame",
         "-f",
         type=int,
-        required=True,
-        help="Número de cuadro a extraer (1-indexed).",
+        default=None,
+        help="Número de cuadro a extraer. Por defecto, uno hacia la mitad del video.",
     )
     parser.add_argument(
         "--config",
@@ -50,7 +52,7 @@ def parse_args():
         "-o",
         type=str,
         default=None,
-        help="Ruta donde se guardará la imagen resultante (por defecto out/verificacion_zona_f{frame}.jpg).",
+        help="Ruta donde se guardará la imagen resultante (por defecto out/verificacion_zona.jpg).",
     )
     return parser.parse_args()
 
@@ -69,13 +71,30 @@ def main():
     if args.output:
         ruta_salida = Path(args.output)
     else:
-        ruta_salida = Path("out") / f"verificacion_zona_f{args.frame}.jpg"
+        ruta_salida = Path("out") / "verificacion_zona.jpg"
     ruta_salida.parent.mkdir(parents=True, exist_ok=True)
 
-    # 3. Leer secuencialmente hasta el cuadro indicado
-    print(f"Decodificando video de manera secuencial hasta el cuadro {args.frame}...")
+    # 3. Elegir un cuadro que exista en este video
     try:
-        cuadro = leer_cuadro_especifico(args.video, args.frame)
+        metadatos = obtener_metadatos_video(args.video)
+    except VideoLecturaError as err:
+        print(f"Error al leer video: {err}", file=sys.stderr)
+        sys.exit(1)
+
+    total = metadatos.total_cuadros
+    if args.frame is None:
+        # Hacia la mitad del video hay mas probabilidad de encontrar trafico
+        numero_cuadro = max(1, total // 2)
+    elif args.frame > total:
+        numero_cuadro = max(1, total // 2)
+        print(f"El cuadro {args.frame} no existe: el video tiene {total}. "
+              f"Se usa el {numero_cuadro} en su lugar.")
+    else:
+        numero_cuadro = args.frame
+
+    print(f"Decodificando video de manera secuencial hasta el cuadro {numero_cuadro}...")
+    try:
+        cuadro = leer_cuadro_especifico(args.video, numero_cuadro)
     except VideoLecturaError as err:
         print(f"Error al leer video: {err}", file=sys.stderr)
         sys.exit(1)
@@ -122,7 +141,7 @@ def main():
     )
 
     # Información de cuadro y resolución en la esquina inferior izquierda
-    info_cuadro = f"Cuadro: {args.frame} | Resolucion: {config.dimensiones.ancho}x{config.dimensiones.alto}"
+    info_cuadro = f"Cuadro: {numero_cuadro} | Resolucion: {config.dimensiones.ancho}x{config.dimensiones.alto}"
     cv2.putText(
         visualizacion,
         info_cuadro,
@@ -142,7 +161,7 @@ def main():
 
     print(f"Evidencia visual generada con éxito:")
     print(f"  Ruta: {ruta_salida}")
-    print(f"  Cuadro: {args.frame}")
+    print(f"  Cuadro: {numero_cuadro}")
     print(f"  Dimensiones: {visualizacion.shape[1]}x{visualizacion.shape[0]}")
 
 
