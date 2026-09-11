@@ -1,5 +1,9 @@
 # Ejecutar el proceso en Google Colab
 
+> **Usa el cuaderno listo: [`placas_lastre.ipynb`](placas_lastre.ipynb).**
+> Abrelo en Colab y ejecuta las celdas en orden. Este documento explica el
+> porque de cada paso, pero el cuaderno ya lo tiene todo resuelto.
+
 ## 1. Preparar los videos
 
 **Si los videos son tuyos:** súbelos a una carpeta de tu Google Drive.
@@ -31,12 +35,24 @@ drive.mount('/content/drive')
 ```python
 !pip install -q opencv-python-headless numpy openpyxl pillow
 !pip install -q fast-alpr open-image-models
-!pip uninstall -y -q onnxruntime
-!pip install -q onnxruntime-gpu
+!pip uninstall -y -q onnxruntime onnxruntime-gpu
+!pip install -q onnxruntime-gpu \
+    --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/ \
+    --extra-index-url https://pypi.org/simple
 ```
 
-`onnxruntime` y `onnxruntime-gpu` no pueden convivir: hay que desinstalar el
-primero o la GPU nunca se usará.
+Dos trampas aquí, y ambas hacen que el proceso corra en procesador durante
+horas sin avisar.
+
+La primera: `onnxruntime` y `onnxruntime-gpu` no pueden convivir. Si queda el
+primero, la GPU nunca se usa.
+
+La segunda: el `onnxruntime-gpu` del índice normal de pip exige CUDA 13, pero
+Colab trae CUDA 12. Falla al cargar la librería y cae a procesador. La
+compilación para CUDA 12 vive en el repositorio de Microsoft indicado arriba.
+
+Después de instalar hay que **reiniciar el entorno de ejecución**, o Python
+sigue con la librería vieja cargada.
 
 ### Traer el código
 
@@ -52,14 +68,22 @@ Si no está en un repositorio, sube la carpeta del proyecto a Drive y cópiala:
 %cd /content/lastre
 ```
 
-### Comprobar que la GPU se reconoce
+### Comprobar que la GPU quedó realmente activa
+
+Que `CUDAExecutionProvider` aparezca en la lista no basta: es la lista de lo
+compilado, no de lo que funciona. La librería puede fallar al cargar y caer a
+procesador en silencio. Hay que crear una sesión real y preguntarle:
 
 ```python
-import onnxruntime
-print(onnxruntime.get_available_providers())
+from open_image_models import create_detector
+
+detector = create_detector("rf-detr-nano-384-coco",
+                           providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+print(detector.model.get_providers())
 ```
 
-Debe aparecer `CUDAExecutionProvider`. Si no aparece, revisa el paso 2.
+Si ahí no aparece CUDA, el proceso correrá en procesador. El script también lo
+verifica por su cuenta y lo informa al arrancar.
 
 ### Ajustar la zona de análisis
 
