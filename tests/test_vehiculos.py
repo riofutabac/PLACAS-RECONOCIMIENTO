@@ -211,3 +211,43 @@ def test_hibrido_rechaza_paso_invalido(config_zona):
     from lastre.vehiculos import DetectorHibrido
     with pytest.raises(VehiculoDeteccionError, match="paso"):
         DetectorHibrido(_MovimientoFalso([True]), _detector(config_zona, []), paso=0)
+
+
+def test_hibrido_saltea_cuadros_en_el_filtro_de_movimiento(config_zona, cuadro):
+    """El filtro de movimiento resulto ser la etapa mas cara del proceso.
+
+    Con paso_movimiento 2 solo se examina la mitad de los cuadros, lo que a 25
+    por segundo deja ocho centesimas entre miradas: ningun vehiculo cruza la
+    zona en ese lapso.
+    """
+    movimiento = _MovimientoFalso([True])
+    from lastre.vehiculos import DetectorHibrido
+    detector = DetectorHibrido(
+        movimiento, _detector(config_zona, [_Cruda("car", 0.9, _caja_centrada_en(DENTRO))]),
+        paso=1, paso_movimiento=2,
+    )
+
+    for _ in range(6):
+        detector.detectar(cuadro)
+
+    assert movimiento.llamadas == 3
+    assert detector.estadisticas["cuadros_vistos"] == 6
+
+
+def test_paso_movimiento_uno_examina_todos_los_cuadros(config_zona, cuadro):
+    """Por defecto no se saltea nada, para no perder vehiculos rapidos."""
+    movimiento = _MovimientoFalso([True])
+    from lastre.vehiculos import DetectorHibrido
+    detector = DetectorHibrido(movimiento, _detector(config_zona, []), paso=1)
+
+    for _ in range(4):
+        detector.detectar(cuadro)
+
+    assert movimiento.llamadas == 4
+
+
+def test_paso_movimiento_invalido(config_zona):
+    """Un paso menor que uno se rechaza de forma explícita."""
+    from lastre.vehiculos import DetectorHibrido
+    with pytest.raises(VehiculoDeteccionError, match="paso_movimiento"):
+        DetectorHibrido(_MovimientoFalso([True]), _detector(config_zona, []), paso_movimiento=0)

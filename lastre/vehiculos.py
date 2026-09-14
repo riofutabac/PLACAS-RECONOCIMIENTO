@@ -154,18 +154,28 @@ class DetectorHibrido:
         detector_movimiento,
         detector_vehiculos: DetectorVehiculos,
         paso: int = 3,
+        paso_movimiento: int = 1,
     ) -> None:
         """Prepara el detector combinado.
 
         - `paso` limita la confirmación a uno de cada N cuadros con movimiento,
           porque un vehículo permanece visible durante decenas de cuadros.
+        - `paso_movimiento` saltea cuadros también en el filtro barato, que
+          resultó ser la etapa más costosa. A 25 cuadros por segundo, mirar uno
+          de cada dos deja ocho centésimas entre miradas, tiempo en que ningún
+          vehículo alcanza a cruzar la zona.
         """
         if paso < 1:
             raise VehiculoDeteccionError(f"paso debe ser >= 1, se recibió: {paso}")
+        if paso_movimiento < 1:
+            raise VehiculoDeteccionError(
+                f"paso_movimiento debe ser >= 1, se recibió: {paso_movimiento}")
 
         self._movimiento = detector_movimiento
         self._vehiculos = detector_vehiculos
         self._paso = paso
+        self._paso_movimiento = paso_movimiento
+        self._cuadros_vistos = 0
         self._cuadros_con_movimiento = 0
         self._cuadros_confirmados = 0
 
@@ -173,12 +183,17 @@ class DetectorHibrido:
     def estadisticas(self) -> dict:
         """Cuántos cuadros activaron el filtro y en cuántos corrió el modelo."""
         return {
+            "cuadros_vistos": self._cuadros_vistos,
             "cuadros_con_movimiento": self._cuadros_con_movimiento,
             "cuadros_confirmados": self._cuadros_confirmados,
         }
 
     def detectar(self, cuadro: np.ndarray) -> Tuple[DeteccionVehiculo, ...]:
         """Devuelve los vehículos confirmados, o vacío si no hay nada que mirar."""
+        self._cuadros_vistos += 1
+        if self._cuadros_vistos % self._paso_movimiento:
+            return ()
+
         if not self._movimiento.detectar(cuadro):
             return ()
 

@@ -74,7 +74,11 @@ def parse_args():
     parser.add_argument("--config", type=str, default="config/zona.json",
                         help="Archivo de configuración de la zona.")
     parser.add_argument("--paso", type=int, default=3,
-                        help="Analizar 1 de cada N cuadros con movimiento.")
+                        help="Confirmar con el modelo 1 de cada N cuadros con movimiento.")
+    parser.add_argument("--paso-movimiento", type=int, default=1,
+                        help="Buscar movimiento 1 de cada N cuadros. Subirlo acelera mucho.")
+    parser.add_argument("--escala-movimiento", type=float, default=0.25,
+                        help="Escala del filtro de movimiento. Bajarla acelera mucho.")
     parser.add_argument("--umbral", type=float, default=0.75,
                         help="Confianza mínima para dar una placa por validada.")
     parser.add_argument("--minimo-lecturas", type=int, default=2,
