@@ -29,6 +29,7 @@ from lastre.excel import escribir_listado
 from lastre.lectura import Lectura, consolidar_lecturas
 from lastre.placa import LectorPlacas, PlacaError
 from lastre.progreso import Progreso
+from lastre.formato_ecuador import TIPO_MOTOCICLETA, tipo_de_placa
 from lastre.registro import registrar_vehiculos
 from lastre.reloj import RelojError, cargar_plantillas, leer_marca, rango_de_nombre
 from lastre.seguimiento import SeguidorTrayectorias
@@ -39,6 +40,23 @@ EXTENSIONES = (".mp4", ".avi", ".mkv", ".mov")
 
 # Un vehículo demasiado pequeño en pantalla nunca tendrá una placa legible
 AREA_MINIMA_PARA_LEER = 40000
+
+# Ventana para considerar que dos lecturas iguales son el mismo vehiculo
+VENTANA_DUPLICADOS = 750
+
+
+def _tipo_de_vehiculo(placa):
+    """Deduce el tipo a partir del formato de la placa.
+
+    Las motocicletas usan dos letras y los automoviles tres, de modo que el
+    propio formato distingue el tipo sin necesidad de volver a mirar el video.
+    """
+    if not placa:
+        return ""
+    tipo = tipo_de_placa(placa)
+    if tipo is None:
+        return ""
+    return "motocicleta" if tipo == TIPO_MOTOCICLETA else "automovil"
 
 # El nombre de archivo de la cámara codifica el inicio de la grabación
 PATRON_FECHA = re.compile(r"(\d{14})-(\d{14})")
@@ -189,8 +207,11 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
             "lecturas": resultado.lecturas_coincidentes,
         })
 
-    finales = deduplicar_por_placa(crudos, ventana_cuadros=300)
-    por_cuadro = {c["cuadro"]: c for c in crudos}
+    # Un vehiculo puede quedar registrado dos veces cuando el seguimiento lo
+    # pierde durante segundos. Treinta segundos cubre esas interrupciones sin
+    # fusionar vehiculos distintos, que rara vez repiten placa tan seguido.
+    finales = deduplicar_por_placa(crudos, ventana_cuadros=VENTANA_DUPLICADOS)
+    por_imagen = {c["imagen"]: c for c in crudos if c["imagen"]}
 
     filas = []
     for final in finales:
@@ -201,16 +222,18 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
                     ).strftime("%Y-%m-%d %H:%M:%S")
         else:
             hora = ""
+        # El consenso debe venir del mismo registro que aporta placa y estado
+        origen = por_imagen.get(final.imagen, {})
         filas.append({
             "placa": final.placa or "",
             "hora_paso": hora,
             "tiempo_video": f"{int(segundos) // 60:02d}:{int(segundos) % 60:02d}",
             "video": ruta.name,
-            "tipo_vehiculo": "",
+            "tipo_vehiculo": _tipo_de_vehiculo(final.placa),
             "sentido": final.sentido,
             "confianza": round(final.confianza, 3),
-            "consenso": round(por_cuadro.get(final.cuadro, {}).get("consenso", 0.0), 3),
-            "lecturas": por_cuadro.get(final.cuadro, {}).get("lecturas", 0),
+            "consenso": round(origen.get("consenso", 0.0), 3),
+            "lecturas": origen.get("lecturas", 0),
             "estado": final.estado,
             "imagen": final.imagen,
         })
@@ -322,9 +345,50 @@ def main():
     _entregar(todas_las_filas, dir_salida, carpeta, videos, total_cuadros, fallidos, progreso)
 
 
+def _segundos_de(tiempo_video):
+    """Convierte el texto mm:ss de la columna de tiempo a segundos."""
+    try:
+        minutos, segundos = str(tiempo_video).split(":")
+        return int(minutos) * 60 + int(segundos)
+    except (ValueError, AttributeError):
+        return None
+
+
+def _depurar_filas(filas, ventana_segundos=30):
+    """Completa el tipo y descarta repeticiones del mismo vehiculo.
+
+    Se aplica tambien sobre lo ya guardado, de modo que regenerar el informe
+    corrige registros antiguos sin volver a procesar ningun video.
+    """
+    depuradas = []
+    vistos = {}
+
+    for fila in sorted(filas, key=lambda f: (f.get("video", ""), _segundos_de(f.get("tiempo_video")) or 0)):
+        fila = dict(fila)
+        if not fila.get("tipo_vehiculo"):
+            fila["tipo_vehiculo"] = _tipo_de_vehiculo(fila.get("placa"))
+
+        placa = fila.get("placa")
+        segundos = _segundos_de(fila.get("tiempo_video"))
+        clave = (fila.get("video"), placa)
+
+        # Sin placa no hay identidad: nunca se descarta, perder un vehiculo es
+        # peor que dejar un duplicado.
+        if placa and segundos is not None and clave in vistos:
+            if segundos - vistos[clave] <= ventana_segundos:
+                vistos[clave] = segundos
+                continue
+
+        if placa and segundos is not None:
+            vistos[clave] = segundos
+        depuradas.append(fila)
+
+    return depuradas
+
+
 def _entregar(todas_las_filas, dir_salida, carpeta, videos, total_cuadros, fallidos, progreso):
     """Ordena los registros, arma el resumen y escribe el Excel final."""
-    todas_las_filas = list(todas_las_filas)
+    todas_las_filas = _depurar_filas(todas_las_filas)
     todas_las_filas.sort(key=lambda f: (f["hora_paso"] or "", f["video"]))
     for numero, fila in enumerate(todas_las_filas, start=1):
         fila["registro"] = f"V{numero:04d}"
@@ -332,6 +396,9 @@ def _entregar(todas_las_filas, dir_salida, carpeta, videos, total_cuadros, falli
     validados = sum(1 for f in todas_las_filas if f["estado"] == "validado")
     sin_placa = sum(1 for f in todas_las_filas if f["estado"] == "sin placa identificable")
     salidas = sum(1 for f in todas_las_filas if f["sentido"] == "sale")
+    entradas = sum(1 for f in todas_las_filas if f["sentido"] == "entra")
+    indeterminados = sum(1 for f in todas_las_filas if f["sentido"] == "indeterminado")
+    sin_hora = sum(1 for f in todas_las_filas if not f.get("hora_paso"))
 
     resumen = {
         "Carpeta procesada": str(carpeta),
@@ -340,7 +407,9 @@ def _entregar(todas_las_filas, dir_salida, carpeta, videos, total_cuadros, falli
         "Cuadros analizados": total_cuadros,
         "Vehiculos registrados": len(todas_las_filas),
         "Vehiculos que salen": salidas,
-        "Vehiculos que entran": len(todas_las_filas) - salidas,
+        "Vehiculos que entran": entradas,
+        "Sentido indeterminado": indeterminados,
+        "Registros sin hora real": sin_hora,
         "Placas validadas": validados,
         "Pendientes de revision": len(todas_las_filas) - validados - sin_placa,
         "Sin placa identificable": sin_placa,
