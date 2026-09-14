@@ -189,3 +189,58 @@ def emparejar(
     sueltos_b = tuple(p for i, p in enumerate(pasos_b) if i not in usados_b)
 
     return tuple(emparejados), sueltos_a, sueltos_b
+
+
+# Clasificacion de una correspondencia entre dos lecturas de placa
+COINCIDENCIA_EXACTA = "identica"
+COINCIDENCIA_LETRA = "difiere una letra"
+COINCIDENCIA_LETRAS = "difieren varias letras"
+COINCIDENCIA_NUMERO = "difiere un numero"
+COINCIDENCIA_MIXTA = "difieren letras y numeros"
+SIN_COINCIDENCIA = "sin correspondencia"
+
+
+def partes_placa(placa: str) -> Tuple[str, str]:
+    """Separa la placa en su parte de letras y su parte de numeros."""
+    if not placa:
+        return "", ""
+    letras = "".join(c for c in placa.upper() if c.isalpha())
+    numeros = "".join(c for c in placa.upper() if c.isdigit())
+    return letras, numeros
+
+
+def _difieren_en(a: str, b: str) -> int:
+    """Cantidad de posiciones distintas entre dos cadenas de igual longitud."""
+    if len(a) != len(b):
+        return max(len(a), len(b))
+    return sum(1 for x, y in zip(a, b) if x != y)
+
+
+def clasificar_coincidencia(placa_a: str, placa_b: str) -> str:
+    """Describe en que se parecen dos lecturas de una misma placa.
+
+    La parte numerica es la mas fiable: si los numeros coinciden exactamente y
+    solo cambia una letra, casi con certeza es el mismo vehiculo leido de dos
+    formas. Aun asi se marca, porque casi con certeza no es certeza.
+    """
+    if not placa_a or not placa_b:
+        return SIN_COINCIDENCIA
+    if placa_a.upper() == placa_b.upper():
+        return COINCIDENCIA_EXACTA
+
+    letras_a, numeros_a = partes_placa(placa_a)
+    letras_b, numeros_b = partes_placa(placa_b)
+
+    numeros_iguales = numeros_a == numeros_b
+    letras_iguales = letras_a == letras_b
+
+    if numeros_iguales and not letras_iguales:
+        return COINCIDENCIA_LETRA if _difieren_en(letras_a, letras_b) == 1 else COINCIDENCIA_LETRAS
+    if letras_iguales and not numeros_iguales:
+        return COINCIDENCIA_NUMERO
+    return COINCIDENCIA_MIXTA
+
+
+def requiere_revision(clasificacion: str) -> bool:
+    """Indica si la correspondencia debe verificarse a mano antes de usarla."""
+    return clasificacion != COINCIDENCIA_EXACTA

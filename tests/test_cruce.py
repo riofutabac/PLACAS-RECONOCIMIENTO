@@ -162,3 +162,62 @@ def test_parametros_invalidos():
 
     with pytest.raises(CruceError, match="ventana_segundos"):
         consolidar_capturas([], ventana_segundos=-1)
+
+
+from lastre.cruce import (
+    COINCIDENCIA_EXACTA,
+    COINCIDENCIA_LETRA,
+    COINCIDENCIA_LETRAS,
+    COINCIDENCIA_MIXTA,
+    COINCIDENCIA_NUMERO,
+    SIN_COINCIDENCIA,
+    clasificar_coincidencia,
+    partes_placa,
+    requiere_revision,
+)
+
+
+def test_separa_letras_y_numeros():
+    """La placa se divide en su parte alfabetica y su parte numerica."""
+    assert partes_placa("PCX6575") == ("PCX", "6575")
+    assert partes_placa("AB123") == ("AB", "123")
+    assert partes_placa("") == ("", "")
+
+
+def test_lecturas_identicas():
+    """Dos lecturas iguales no necesitan revision."""
+    assert clasificar_coincidencia("PCX6575", "PCX6575") == COINCIDENCIA_EXACTA
+    assert not requiere_revision(COINCIDENCIA_EXACTA)
+
+
+def test_numeros_iguales_y_una_letra_distinta():
+    """El caso mas frecuente: la primera letra mal leida.
+
+    Casos reales observados: BAC2573 contra PAC2573 y FDY9788 contra PDY9788.
+    Es casi con certeza el mismo vehiculo, pero casi no es certeza.
+    """
+    assert clasificar_coincidencia("BAC2573", "PAC2573") == COINCIDENCIA_LETRA
+    assert clasificar_coincidencia("FDY9788", "PDY9788") == COINCIDENCIA_LETRA
+    assert requiere_revision(COINCIDENCIA_LETRA)
+
+
+def test_numeros_iguales_y_varias_letras_distintas():
+    """Cuantas mas letras difieran, menos confiable la correspondencia."""
+    assert clasificar_coincidencia("ABC1234", "XYC1234") == COINCIDENCIA_LETRAS
+
+
+def test_letras_iguales_y_numero_distinto():
+    """Un numero distinto es mas grave: pueden ser dos vehiculos reales."""
+    assert clasificar_coincidencia("PAB7862", "PAB7882") == COINCIDENCIA_NUMERO
+    assert requiere_revision(COINCIDENCIA_NUMERO)
+
+
+def test_difieren_letras_y_numeros():
+    """Cuando ambas partes cambian, la correspondencia es la menos fiable."""
+    assert clasificar_coincidencia("PCX6575", "PDX6576") == COINCIDENCIA_MIXTA
+
+
+def test_placa_ausente():
+    """Sin placa no hay correspondencia que clasificar."""
+    assert clasificar_coincidencia("", "PCX6575") == SIN_COINCIDENCIA
+    assert clasificar_coincidencia(None, None) == SIN_COINCIDENCIA
