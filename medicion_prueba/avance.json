@@ -1,0 +1,62 @@
+{
+ "version": 1,
+ "videos": {
+  "Camara Placas 2_20260909105651-20260909163038(60).mp4": {
+   "filas": [
+    {
+     "placa": "PCM7497",
+     "hora_paso": "2026-09-09 16:17:46",
+     "tiempo_video": "00:30",
+     "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+     "tipo_vehiculo": "automovil",
+     "sentido": "sale",
+     "confianza": 0.926,
+     "consenso": 0.222,
+     "lecturas": 9,
+     "estado": "pendiente de revision",
+     "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v01_f736.jpg"
+    },
+    {
+     "placa": "TAA2204",
+     "hora_paso": "2026-09-09 16:19:03",
+     "tiempo_video": "01:47",
+     "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+     "tipo_vehiculo": "automovil",
+     "sentido": "entra",
+     "confianza": 0.945,
+     "consenso": 0.311,
+     "lecturas": 20,
+     "estado": "pendiente de revision",
+     "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v02_f2959.jpg"
+    },
+    {
+     "placa": "BI137",
+     "hora_paso": "2026-09-09 16:19:17",
+     "tiempo_video": "02:01",
+     "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+     "tipo_vehiculo": "motocicleta",
+     "sentido": "entra",
+     "confianza": 0.651,
+     "consenso": 0.258,
+     "lecturas": 1,
+     "estado": "pendiente de revision",
+     "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v04_f3031.jpg"
+    },
+    {
+     "placa": "VE9715",
+     "hora_paso": "2026-09-09 16:21:46",
+     "tiempo_video": "04:30",
+     "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+     "tipo_vehiculo": "motocicleta",
+     "sentido": "entra",
+     "confianza": 0.721,
+     "consenso": 0.142,
+     "lecturas": 1,
+     "estado": "pendiente de revision",
+     "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v05_f6696.jpg"
+    }
+   ],
+   "cuadros": 8223
+  }
+ }
+}

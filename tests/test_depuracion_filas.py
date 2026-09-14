@@ -17,8 +17,9 @@ _spec.loader.exec_module(procesar_lote)
 depurar = procesar_lote._depurar_filas
 
 
-def _fila(placa, tiempo, video="a.mp4"):
-    return {"placa": placa, "video": video, "tiempo_video": tiempo, "tipo_vehiculo": ""}
+def _fila(placa, tiempo, video="a.mp4", estado="validado"):
+    return {"placa": placa, "video": video, "tiempo_video": tiempo,
+            "tipo_vehiculo": "", "estado": estado}
 
 
 def test_fusiona_repeticiones_cercanas_del_mismo_vehiculo():
@@ -91,3 +92,34 @@ def test_tiempo_ilegible_no_rompe_la_depuracion():
 def test_lista_vacia():
     """Un lote sin filas produce una salida vacia, no un error."""
     assert depurar([]) == []
+
+
+def _fila_estado(placa, tiempo, estado, video="a.mp4"):
+    return {"placa": placa, "video": video, "tiempo_video": tiempo,
+            "tipo_vehiculo": "", "estado": estado}
+
+
+def test_no_fusiona_cuando_la_placa_no_esta_validada():
+    """Una placa dudosa no sirve como identidad para descartar duplicados.
+
+    Reproduce el caso real de la muestra verificada: un camion cisterna y una
+    camioneta que circulaban juntos recibieron la misma placa porque el
+    recorte de uno capturo la placa del otro. Fusionarlos borraba un vehiculo
+    real del informe.
+    """
+    filas = [
+        _fila_estado("TAA2204", "01:41", "pendiente de revision"),
+        _fila_estado("TAA2204", "01:51", "pendiente de revision"),
+    ]
+
+    assert len(depurar(filas)) == 2
+
+
+def test_fusiona_cuando_la_placa_esta_validada():
+    """Con la placa confirmada, dos lecturas cercanas si son el mismo vehiculo."""
+    filas = [
+        _fila_estado("PCX6575", "00:04", "validado"),
+        _fila_estado("PCX6575", "00:28", "validado"),
+    ]
+
+    assert len(depurar(filas)) == 1

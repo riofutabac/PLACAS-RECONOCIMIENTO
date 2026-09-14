@@ -26,7 +26,7 @@ from lastre.config import cargar_configuracion, ConfiguracionError
 from lastre.deduplicacion import deduplicar_por_placa
 from lastre.deteccion import DetectorMovimiento
 from lastre.excel import escribir_listado
-from lastre.lectura import Lectura, consolidar_lecturas
+from lastre.lectura import ESTADO_VALIDADO, Lectura, consolidar_lecturas
 from lastre.medicion import Medidor
 from lastre.placa import LectorPlacas, PlacaError
 from lastre.progreso import Progreso
@@ -382,6 +382,12 @@ def _depurar_filas(filas, ventana_segundos=30):
 
     Se aplica tambien sobre lo ya guardado, de modo que regenerar el informe
     corrige registros antiguos sin volver a procesar ningun video.
+
+    Solo se fusionan registros cuya placa esta validada. Una placa dudosa no
+    sirve como identidad: en la muestra verificada, un camion cisterna y una
+    camioneta que circulaban juntos recibieron la misma placa porque el
+    recorte de uno capturo la placa del otro, y fusionarlos borraba un
+    vehiculo real del informe.
     """
     depuradas = []
     vistos = {}
@@ -395,8 +401,13 @@ def _depurar_filas(filas, ventana_segundos=30):
         segundos = _segundos_de(fila.get("tiempo_video"))
         clave = (fila.get("video"), placa)
 
-        # Sin placa no hay identidad: nunca se descarta, perder un vehiculo es
-        # peor que dejar un duplicado.
+        # Sin placa, o con una placa que no se dio por buena, no hay identidad:
+        # nunca se descarta, porque perder un vehiculo es peor que dejar un
+        # duplicado.
+        if fila.get("estado") != ESTADO_VALIDADO:
+            depuradas.append(fila)
+            continue
+
         if placa and segundos is not None and clave in vistos:
             if segundos - vistos[clave] <= ventana_segundos:
                 vistos[clave] = segundos
