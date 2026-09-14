@@ -66,7 +66,7 @@ COLOR_OTRO = "EDEDED"
 COLUMNAS = [
     ("Placa lastre", 15), ("Placa otra camara", 18), ("En que difieren", 26),
     ("Confianza", 14), ("Hora lastre", 20), ("Hora otra camara", 20),
-    ("Minutos", 10), ("Tiempo esperado", 17), ("Tipo", 13),
+    ("Minutos", 10), ("Tiempo esperado", 17), ("Tipo de vehiculo", 18),
     ("Estado lastre", 24), ("Advertencia", 46),
     ("Foto via de lastre", 30), ("Foto otra camara", 30),
 ]
@@ -131,11 +131,16 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("lastre", type=str, help="Excel de la via de lastre.")
-    parser.add_argument("anpr", type=str, help="Zip o carpeta de la otra camara.")
+    parser.add_argument("anpr", type=str,
+                        help="Indice CSV de la otra camara, o el zip/carpeta de sus imagenes.")
+    parser.add_argument("--imagenes", type=str, default=None,
+                        help="Carpeta con las fotos de la otra camara.")
     parser.add_argument("--out", type=str, default="comparacion_placas.xlsx",
                         help="Archivo Excel de salida.")
     parser.add_argument("--distancia", type=float, default=DISTANCIA_MAXIMA,
                         help="Diferencia maxima tolerada entre dos lecturas.")
+    parser.add_argument("--incluir-sin-match", action="store_true",
+                        help="Incluir tambien los pasos que no aparecen en la otra camara.")
     return parser.parse_args()
 
 
@@ -187,6 +192,7 @@ def comparar(pasos_lastre, pasos_anpr, distancia_maxima):
         if mejor is None:
             filas.append({
                 "_clave_lastre": (a.placa, a.fecha_hora), "_clave_otra": None,
+                "_imagen_otra": "",
                 "placa_lastre": a.placa, "placa_otra": "", "difieren": "sin correspondencia",
                 "confianza": "", "hora_lastre": a.fecha_hora, "hora_otra": "",
                 "minutos": "", "dentro": "", "tipo": a.tipo, "estado": a.origen,
@@ -199,12 +205,16 @@ def comparar(pasos_lastre, pasos_anpr, distancia_maxima):
         filas.append({
             "_clave_lastre": (a.placa, a.fecha_hora),
             "_clave_otra": (b.placa, b.momento.strftime("%Y%m%d%H%M%S")),
+            "_imagen_otra": b.imagen,
             "placa_lastre": a.placa, "placa_otra": b.placa, "difieren": clas,
             "confianza": _confianza(clas, dentro),
             "hora_lastre": a.fecha_hora, "hora_otra": b.fecha_hora,
             "minutos": round(abs(minutos), 1),
             "dentro": "si" if dentro else "no",
-            "tipo": a.tipo or b.tipo, "estado": a.origen,
+            # El tipo de la otra camara viene de su propio detector, que
+            # distingue camion de automovil. El del lastre solo deduce del
+            # formato de placa, asi que nunca reconoce un camion.
+            "tipo": b.tipo or a.tipo, "estado": a.origen,
             "advertencia": _advertencia(clas, dentro, minutos),
         })
 
@@ -247,10 +257,15 @@ def escribir(destino, filas, resumen, fotos_lastre=None, fotos_anpr=None, ruta_z
         hoja.row_dimensions[i].height = ALTO_FILA
         _insertar(hoja, fotos_lastre.get(fila["_clave_lastre"]), i, columna_foto_a)
 
-        if archivo_zip and fila["_clave_otra"]:
+        datos_otra = None
+        ruta_suelta = fila.get("_imagen_otra")
+        if ruta_suelta and Path(ruta_suelta).is_file():
+            datos_otra = Path(ruta_suelta).read_bytes()
+        elif archivo_zip and fila["_clave_otra"]:
             nombre = fotos_anpr.get(fila["_clave_otra"])
             if nombre:
-                _insertar(hoja, archivo_zip.read(nombre), i, columna_foto_b)
+                datos_otra = archivo_zip.read(nombre)
+        _insertar(hoja, datos_otra, i, columna_foto_b)
 
     if archivo_zip:
         archivo_zip.close()
@@ -270,13 +285,18 @@ def escribir(destino, filas, resumen, fotos_lastre=None, fotos_anpr=None, ruta_z
 def main():
     args = parse_args()
 
-    capturas, ignorados = _cruzar.leer_anpr(args.anpr)
+    capturas, ignorados = _cruzar.leer_anpr(args.anpr, args.imagenes)
     pasos_lastre, sin_hora = _cruzar.leer_lastre(args.lastre)
     pasos_anpr = consolidar_capturas(capturas, ventana_segundos=180)
 
     filas = comparar(pasos_lastre, pasos_anpr, args.distancia)
 
     con = [f for f in filas if f["placa_otra"]]
+    sin_correspondencia = len(filas) - len(con)
+
+    # El listado util es el de los que emparejaron; los demas solo estorban
+    if not args.incluir_sin_match:
+        filas = con
     exactas = [f for f in con if f["difieren"] == COINCIDENCIA_EXACTA]
     dentro = [f for f in con if f["dentro"] == "si"]
     revisar = [f for f in con if requiere_revision(f["difieren"])]
@@ -290,7 +310,10 @@ def main():
         "  lectura que difiere (revisar)": len(revisar),
         "  dentro del tiempo esperado": len(dentro),
         "  fuera del tiempo esperado": len(con) - len(dentro),
-        "Sin correspondencia": len(filas) - len(con),
+        "Sin correspondencia (no listados)": sin_correspondencia,
+        "Camiones identificados": sum(1 for f in con if f["tipo"] == "truck"),
+        "Buses identificados": sum(1 for f in con if f["tipo"] == "bus"),
+        "Automoviles identificados": sum(1 for f in con if f["tipo"] == "car"),
         "Tiempo esperado de recorrido": f"{MINUTOS_ESPERADO_MIN:.0f} a {MINUTOS_ESPERADO_MAX:.0f} minutos",
         "Generado": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }

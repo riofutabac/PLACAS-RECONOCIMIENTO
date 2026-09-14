@@ -27,6 +27,7 @@ from lastre.deduplicacion import deduplicar_por_placa
 from lastre.deteccion import DetectorMovimiento
 from lastre.excel import escribir_listado
 from lastre.lectura import Lectura, consolidar_lecturas
+from lastre.medicion import Medidor
 from lastre.placa import LectorPlacas, PlacaError
 from lastre.progreso import Progreso
 from lastre.formato_ecuador import TIPO_MOTOCICLETA, tipo_de_placa
@@ -111,7 +112,7 @@ def inicio_de_grabacion(nombre: str):
 
 
 def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedores,
-                   plantillas_reloj=None):
+                   plantillas_reloj=None, medidor=None):
     """Detecta, sigue y lee las placas de un video. Devuelve sus filas."""
     metadatos = obtener_metadatos_video(ruta)
     fps = metadatos.fps or 25.0
@@ -128,22 +129,35 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     ultimo_informe = time.time()
     marca_referencia = None
 
-    for numero, cuadro in iterar_cuadros(ruta):
+    medidor = medidor or Medidor()
+    generador = iterar_cuadros(ruta)
+
+    while True:
+        with medidor.fase("decodificar video"):
+            try:
+                numero, cuadro = next(generador)
+            except StopIteration:
+                break
+
         # La hora real proviene del reloj impreso por la camara. El nombre del
         # archivo codifica el rango de toda la grabacion, no el inicio de este
         # fragmento, y usarlo desplazaba cada registro varias horas.
         if plantillas_reloj is not None and marca_referencia is None:
-            momento = leer_marca(cuadro, plantillas_reloj)
+            with medidor.fase("leer reloj"):
+                momento = leer_marca(cuadro, plantillas_reloj)
             if momento is not None:
                 marca_referencia = (numero, momento)
 
-        detecciones = tuple(d.como_deteccion for d in detector.detectar(cuadro))
-        trayectorias.extend(seguidor.actualizar(numero, detecciones))
+        with medidor.fase("detectar vehiculos"):
+            detecciones = tuple(d.como_deteccion for d in detector.detectar(cuadro))
+        with medidor.fase("seguimiento"):
+            trayectorias.extend(seguidor.actualizar(numero, detecciones))
 
         if detecciones or seguidor.hay_pistas_activas:
-            ok, codificado = cv2.imencode(".jpg", cuadro, [cv2.IMWRITE_JPEG_QUALITY, 92])
-            if ok:
-                cuadros_guardados[numero] = codificado.tobytes()
+            with medidor.fase("guardar cuadro"):
+                ok, codificado = cv2.imencode(".jpg", cuadro, [cv2.IMWRITE_JPEG_QUALITY, 92])
+                if ok:
+                    cuadros_guardados[numero] = codificado.tobytes()
 
         progreso.avanzar(1)
         if time.time() - ultimo_informe >= 5:
@@ -178,7 +192,8 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
                 import numpy as np
                 imagen = cv2.imdecode(np.frombuffer(codificado, np.uint8), cv2.IMREAD_COLOR)
                 try:
-                    encontradas = lector.leer_vehiculo(imagen, posicion.caja)
+                    with medidor.fase("leer placa"):
+                        encontradas = lector.leer_vehiculo(imagen, posicion.caja)
                 except PlacaError:
                     continue
                 for encontrada in encontradas:
@@ -320,6 +335,7 @@ def main():
         sys.exit(1)
 
     fallidos = []
+    medidor = Medidor()
 
     for video in videos:
         if avance.esta_hecho(video.name):
@@ -330,7 +346,7 @@ def main():
         print(f"\n--- {video.name} ---", flush=True)
         try:
             filas = procesar_video(video, config, lector, progreso, args,
-                                   dir_recortes, proveedores, plantillas_reloj)
+                                   dir_recortes, proveedores, plantillas_reloj, medidor)
             cuadros = obtener_metadatos_video(video).total_cuadros
             avance.guardar_video(video.name, filas, cuadros=cuadros)
             print(f"    {len(filas)} vehiculos registrados y guardados", flush=True)
@@ -341,6 +357,9 @@ def main():
         print(progreso.linea(), flush=True)
 
     todas_las_filas = avance.todas_las_filas()
+
+    if medidor.etapas:
+        print(medidor.informe(), flush=True)
 
     _entregar(todas_las_filas, dir_salida, carpeta, videos, total_cuadros, fallidos, progreso)
 

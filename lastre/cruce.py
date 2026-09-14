@@ -40,6 +40,7 @@ class Paso:
     tipo: str = ""
     capturas: int = 1
     origen: str = ""
+    imagen: str = ""
 
     @property
     def fecha_hora(self) -> str:
@@ -124,6 +125,7 @@ def consolidar_capturas(
             tipo=grupo[0].get("tipo", ""),
             capturas=len(grupo),
             origen=grupo[0].get("origen", ""),
+            imagen=grupo[0].get("imagen", ""),
         ))
 
     for captura in ordenadas:

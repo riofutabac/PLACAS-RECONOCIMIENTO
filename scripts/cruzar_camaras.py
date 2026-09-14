@@ -13,6 +13,7 @@ formato AAAAMMDDHHMMSS_PLACA_Tipo.jpg
 """
 
 import argparse
+import csv
 from datetime import datetime
 from pathlib import Path
 import re
@@ -41,7 +42,10 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("lastre", type=str, help="Excel generado para la via de lastre.")
-    parser.add_argument("anpr", type=str, help="Zip o carpeta con las imagenes de la otra camara.")
+    parser.add_argument("anpr", type=str,
+                        help="Indice CSV de la otra camara, o el zip/carpeta de sus imagenes.")
+    parser.add_argument("--imagenes", type=str, default=None,
+                        help="Carpeta con las fotos de la otra camara, si el CSV no la implica.")
     parser.add_argument("--out", type=str, default="cruce_camaras.xlsx",
                         help="Archivo Excel de salida.")
     parser.add_argument("--minutos-min", type=float, default=5.0,
@@ -55,9 +59,49 @@ def parse_args():
     return parser.parse_args()
 
 
-def leer_anpr(ruta):
-    """Extrae fecha, placa y tipo del nombre de cada imagen de la otra camara."""
+def leer_anpr_csv(ruta, carpeta_imagenes=None):
+    """Lee el indice de la otra camara, que es su fuente de verdad.
+
+    El CSV aporta el tipo de vehiculo real detectado por esa camara, dato que
+    el nombre del archivo tambien trae pero que aqui llega ya normalizado.
+    """
     ruta = Path(ruta)
+    carpeta = Path(carpeta_imagenes) if carpeta_imagenes else ruta.parent / f"dia_{ruta.stem.split('_')[-1]}"
+
+    capturas, ignorados = [], 0
+    with ruta.open(encoding="utf-8-sig") as f:
+        for fila in csv.DictReader(f):
+            placa = (fila.get("placa") or "").strip().upper()
+            marca = (fila.get("timestamp") or "").strip()
+            if not placa or not marca:
+                ignorados += 1
+                continue
+            try:
+                momento = datetime.strptime(marca, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                ignorados += 1
+                continue
+            imagen = (fila.get("archivo_renombrado") or "").strip()
+            capturas.append({
+                "placa": placa,
+                "momento": momento,
+                "tipo": (fila.get("tipo_vehiculo") or "").strip().lower(),
+                "origen": "ANPR",
+                "imagen": str(carpeta / imagen) if imagen else "",
+            })
+
+    return capturas, ignorados
+
+
+def leer_anpr(ruta, carpeta_imagenes=None):
+    """Extrae fecha, placa y tipo de la otra camara.
+
+    Acepta el indice CSV, que es la fuente preferida, o el conjunto de
+    imagenes cuando solo se dispone de ellas.
+    """
+    ruta = Path(ruta)
+    if ruta.suffix.lower() == ".csv":
+        return leer_anpr_csv(ruta, carpeta_imagenes)
     if ruta.suffix.lower() == ".zip":
         with zipfile.ZipFile(ruta) as z:
             nombres = z.namelist()
@@ -80,7 +124,7 @@ def leer_anpr(ruta):
             ignorados += 1
             continue
         capturas.append({"placa": placa.upper(), "momento": momento,
-                         "tipo": tipo.lower(), "origen": "ANPR"})
+                         "tipo": tipo.lower(), "origen": "ANPR", "imagen": nombre})
 
     return capturas, ignorados
 
@@ -173,7 +217,7 @@ def main():
     args = parse_args()
 
     try:
-        capturas, ignorados = leer_anpr(args.anpr)
+        capturas, ignorados = leer_anpr(args.anpr, args.imagenes)
         pasos_lastre, sin_hora = leer_lastre(args.lastre)
     except (CruceError, OSError, KeyError) as err:
         print(f"Error al leer los datos: {err}", file=sys.stderr)
