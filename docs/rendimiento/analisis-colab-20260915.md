@@ -208,3 +208,19 @@ Pruebas: 335 pasan localmente. Cubren orden, límite, cierre, propagación de er
 La próxima corrida en Colab debe usar una salida nueva y procesar el video vacío (1), el 60 y el 61. Comparar contra las salidas guardadas: 0 registros, cinco eventos y tres vehículos. Anotar tiempo de pared, reparto interno, contador del detector, RSS y GPU. Solo entonces decidir backend de decodificación, reutilización de modelos o una región de movimiento más estrecha.
 
 No modificar los umbrales de conteo ni prometer un factor de aceleración antes de medir en la GPU de Colab.
+
+## Validación local CPU — 15 de septiembre de 2026
+
+La corrida nueva, sin reutilizar checkpoints, procesó los videos 60 y 61 con CPU: 16,452 cuadros realmente entregados. Conservó cinco registros para el 60 y tres para el 61; el Excel contiene ocho filas de datos y ocho evidencias. El 61 conserva BAC2573 pendiente, MZS872 pendiente y PAB6741 validado. Esta mejora no corrige el OCR conocido ni duplica otra vez la furgoneta.
+
+| Medición | Resultado |
+|---|---:|
+| Lote 60 + 61 | 1,051.5 s (17m33) |
+| RF-DETR | 596.5 s, 831 inferencias, 56.7 % del tiempo de pared |
+| Decodificación | 329.0 s |
+| Filtro de movimiento | 299.0 s |
+| Solapamiento lectura/proceso | 235.1 s |
+
+El 60 hizo 1,562 comprobaciones de movimiento y 520 inferencias; el 61, 935 y 311 respectivamente. La lectura adelantada se evaluó frente a una variante secuencial en el 61: adelantada, aproximadamente 494 s dentro del lote; secuencial, 525.6 s (8m47). Ambas produjeron los mismos tres registros. Por eso se conserva la lectura adelantada también para CPU. La diferencia no es un benchmark con repeticiones suficientes para prometer un porcentaje universal, pero descarta el cambio secuencial como mejora en esta máquina.
+
+El cuello de botella CPU es el modelo de vehículos. La próxima optimización debe reducir inferencias confirmadas manteniendo los eventos anotados; no debe alterar `observaciones_minimas` ni aceptar pérdida de recall para declarar una ganancia.

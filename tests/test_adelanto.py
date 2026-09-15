@@ -6,6 +6,7 @@ lectura en un hilo solapa ambas etapas sin descartar ni reordenar cuadros.
 """
 
 import time
+from threading import Event
 
 import pytest
 
@@ -55,19 +56,22 @@ def test_la_capacidad_limita_cuanto_se_adelanta():
 
 
 def test_solapa_la_lectura_con_el_consumo():
-    """La garantia que justifica el cambio: leer y procesar a la vez."""
+    """El productor avanza mientras el consumidor aún procesa el primer cuadro."""
+    segunda_lectura = Event()
+
     def origen():
-        for numero in range(6):
-            time.sleep(0.02)
-            yield (numero, "x")
+        yield (0, "primero")
+        segunda_lectura.set()
+        yield (1, "segundo")
 
-    arranque = time.perf_counter()
-    for _ in cuadros_adelantados(origen(), capacidad=2):
-        time.sleep(0.02)
-    transcurrido = time.perf_counter() - arranque
+    flujo = cuadros_adelantados(origen(), capacidad=2)
+    assert next(flujo) == (0, "primero")
 
-    # En serie serian 6*(0.02+0.02)=0.24 s; solapadas, poco mas de 0.12 s.
-    assert transcurrido < 0.20
+    # No pedimos el segundo elemento: que ya se haya leído demuestra que no
+    # trabaja en serie con el consumidor. El margen es solo para planificar
+    # el hilo, no una afirmación frágil de rendimiento absoluto.
+    assert segunda_lectura.wait(timeout=1)
+    flujo.close()
 
 
 def test_mide_solo_el_trabajo_del_productor():
