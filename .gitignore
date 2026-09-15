@@ -39,3 +39,8 @@ Thumbs.db
 # porque son la evidencia que citan los informes.
 validacion/**/*.jpg
 validacion/**/coverage*.data
+
+# Worktrees y directorios locales de benchmark
+.worktree_*/
+conjunto_evaluacion/
+
