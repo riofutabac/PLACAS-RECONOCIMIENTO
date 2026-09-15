@@ -106,6 +106,11 @@ class DetectorVehiculos:
             else:
                 self._detector = create_detector(modelo)
 
+    @property
+    def sesion(self):
+        """Modelo interno con sesión ONNX, para verificar el acelerador."""
+        return self._detector
+
     def detectar(self, cuadro: np.ndarray) -> Tuple[DeteccionVehiculo, ...]:
         """Devuelve los vehículos reconocidos que circulan dentro de la zona.
 

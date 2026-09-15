@@ -116,6 +116,19 @@ class LectorPlacas:
         else:
             self._alpr = ALPR(detector_model=detector_modelo, ocr_model=ocr_modelo)
 
+    @property
+    def sesiones(self) -> dict:
+        """Modelos internos con sesión ONNX propia, para verificar el acelerador.
+
+        El lector carga dos: el detector de placas y el OCR. Que uno consiga la
+        tarjeta no dice nada del otro, así que el lote debe verlos por separado.
+        Si la librería cambia de forma, se informa menos pero no se rompe.
+        """
+        detector = getattr(getattr(self._alpr, "detector", None), "detector", None)
+        ocr = getattr(getattr(self._alpr, "ocr", None), "ocr_model", None)
+        encontrados = {"detector de placas": detector, "ocr": ocr}
+        return {k: v for k, v in encontrados.items() if v is not None}
+
     def leer(self, recorte: np.ndarray) -> Tuple[LecturaPlaca, ...]:
         """Devuelve todas las placas legibles del recorte, sin modificarlo."""
         if not isinstance(recorte, np.ndarray):

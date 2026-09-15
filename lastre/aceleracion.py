@@ -111,3 +111,34 @@ def describir(proveedores: Sequence[str]) -> str:
     if proveedores[0] == PROVEEDOR_CPU:
         return "procesador (CPU)"
     return f"GPU ({proveedores[0]})"
+
+
+def verificar_sesiones(modelos: dict, modo: str) -> Tuple[bool, Tuple[str, ...]]:
+    """Comprueba el proveedor efectivo de cada modelo ya cargado.
+
+    El lote carga varios modelos y cada uno abre su propia sesión ONNX. Que
+    uno consiga la tarjeta no dice nada de los demás, y basta que uno caiga a
+    procesador para que el tiempo del lote deje de ser interpretable.
+
+    Devuelve si la configuración pedida se cumplió y un informe por modelo.
+    En modo 'gpu' un solo modelo en procesador es un fallo; en 'auto' y 'cpu'
+    el procesador es un resultado aceptable y solo se informa.
+    """
+    if modo not in MODOS:
+        raise AceleracionError(f"Modo desconocido: '{modo}'. Use uno de {MODOS}")
+    if not modelos:
+        raise AceleracionError(
+            "No hay modelos que verificar. Informar que todo está correcto sin "
+            "haber comprobado ninguna sesión sería engañoso."
+        )
+
+    informes = []
+    todo_bien = True
+
+    for nombre, modelo in modelos.items():
+        activa, mensaje = confirmar_gpu_activa(modelo, modo)
+        informes.append(f"{nombre}: {mensaje}")
+        if modo == MODO_GPU and not activa:
+            todo_bien = False
+
+    return todo_bien, tuple(informes)

@@ -142,3 +142,58 @@ def test_lector_rechaza_entrada_invalida():
 
     with pytest.raises(PlacaError, match="numpy.ndarray"):
         lector.leer("no es una imagen")
+
+
+# --- Sesiones ONNX expuestas para verificar el acelerador -------------------
+
+class _SesionOnnxFalsa:
+    def __init__(self, proveedores):
+        self._proveedores = proveedores
+
+    def get_providers(self):
+        return list(self._proveedores)
+
+
+class _SubmodeloOnnxFalso:
+    def __init__(self, proveedores):
+        self.model = _SesionOnnxFalsa(proveedores)
+
+
+class _AlprConSesionesFalso:
+    """Reproduce la forma real de fast_alpr: dos submodelos con sesión propia."""
+
+    def __init__(self):
+        self.detector = type("D", (), {})()
+        self.detector.detector = _SubmodeloOnnxFalso(("CUDAExecutionProvider",))
+        self.ocr = type("O", (), {})()
+        self.ocr.ocr_model = _SubmodeloOnnxFalso(("CPUExecutionProvider",))
+
+
+def test_el_lector_expone_las_sesiones_de_sus_dos_modelos():
+    """El lector carga detector de placas y OCR, cada uno con su sesión.
+
+    Que uno consiga la tarjeta no dice nada del otro, así que el lote necesita
+    verlos por separado para saber dónde se está ejecutando de verdad.
+    """
+    lector = LectorPlacas(alpr=_AlprConSesionesFalso())
+
+    sesiones = lector.sesiones
+
+    assert set(sesiones) == {"detector de placas", "ocr"}
+
+
+def test_las_sesiones_del_lector_reportan_proveedores_distintos():
+    """Una caída silenciosa de un solo modelo debe poder distinguirse."""
+    from lastre.aceleracion import proveedores_activos
+
+    sesiones = LectorPlacas(alpr=_AlprConSesionesFalso()).sesiones
+
+    assert proveedores_activos(sesiones["detector de placas"]) == ("CUDAExecutionProvider",)
+    assert proveedores_activos(sesiones["ocr"]) == ("CPUExecutionProvider",)
+
+
+def test_un_alpr_sin_la_forma_esperada_no_rompe_el_lote():
+    """Si la librería cambia de forma, se informa menos, pero no se cae."""
+    lector = LectorPlacas(alpr=object())
+
+    assert lector.sesiones == {}

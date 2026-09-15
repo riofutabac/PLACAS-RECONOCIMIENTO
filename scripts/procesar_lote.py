@@ -18,7 +18,8 @@ import time
 # Permite ejecutar el script sin instalar el paquete
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from lastre.aceleracion import AceleracionError, describir, elegir_proveedores
+from lastre.aceleracion import (AceleracionError, describir, elegir_proveedores,
+                                verificar_sesiones)
 from lastre.checkpoint import Checkpoint
 from lastre.config import cargar_configuracion, ConfiguracionError
 from lastre.deduplicacion import deduplicar_por_placa
@@ -35,7 +36,8 @@ from lastre.formato_ecuador import TIPO_MOTOCICLETA, tipo_de_placa
 from lastre.registro import registrar_vehiculos
 from lastre.reloj import RelojError, cargar_plantillas, leer_marca
 from lastre.seguimiento import SeguidorTrayectorias
-from lastre.vehiculos import DetectorHibrido, DetectorVehiculos
+from lastre.vehiculos import (DetectorHibrido, DetectorVehiculos,
+                              VehiculoDeteccionError)
 from lastre.video import iterar_cuadros, obtener_metadatos_video, VideoLecturaError
 
 EXTENSIONES = (".mp4", ".avi", ".mkv", ".mov")
@@ -122,9 +124,11 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     metadatos = obtener_metadatos_video(ruta)
     fps = metadatos.fps or 25.0
 
+    detector_vehiculos = DetectorVehiculos(
+        config, modelo="rf-detr-nano-384-coco", proveedores=proveedores)
     detector = DetectorHibrido(
         DetectorMovimiento(config, factor_escala=args.escala_movimiento),
-        DetectorVehiculos(config, modelo="rf-detr-nano-384-coco", proveedores=proveedores),
+        detector_vehiculos,
         paso=args.paso,
         paso_movimiento=args.paso_movimiento,
     )
@@ -320,7 +324,7 @@ def main():
     print("=" * 78)
     print(f"Carpeta:  {carpeta}")
     print(f"Videos:   {len(videos)}")
-    print(f"Computo:  {describir(proveedores)}")
+    print(f"Computo solicitado: {describir(proveedores)}")
     print("Midiendo duracion total del lote...", flush=True)
 
     total_cuadros = 0
@@ -362,6 +366,33 @@ def main():
         lector = LectorPlacas(proveedores=proveedores)
     except PlacaError as err:
         print(f"Error al iniciar el lector de placas: {err}", file=sys.stderr)
+        sys.exit(1)
+
+    # Pedir GPU no garantiza obtenerla: si onnxruntime-gpu no casa con la
+    # version de CUDA, la sesion cae a procesador sin aviso y el lote corre
+    # horas creyendo usar la tarjeta. Solo la sesion dice donde se ejecuta.
+    # getattr: los dobles de prueba no exponen sesiones y no deben romper.
+    modelos = dict(getattr(lector, "sesiones", {}) or {})
+    try:
+        modelos["detector de vehiculos"] = DetectorVehiculos(
+            config, modelo="rf-detr-nano-384-coco", proveedores=proveedores).sesion
+    except VehiculoDeteccionError as err:
+        print(f"Error al iniciar el detector de vehiculos: {err}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        todo_bien, informes = verificar_sesiones(modelos, args.acelerador)
+    except AceleracionError as err:
+        print(f"Error de aceleracion: {err}", file=sys.stderr)
+        sys.exit(1)
+
+    print("Computo efectivo:")
+    for informe in informes:
+        print(f"  {informe}")
+    if not todo_bien:
+        print("Se pidio GPU y algun modelo quedo en procesador. El lote se "
+              "detiene: procesar horas con una medicion enganosa es peor que "
+              "fallar de entrada.", file=sys.stderr)
         sys.exit(1)
 
     fallidos = []
