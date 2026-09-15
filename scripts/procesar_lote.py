@@ -206,10 +206,13 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
 
             # La evidencia se guarda sin esperar al OCR: un vehiculo sin placa
             # legible sigue necesitando su foto para verificarlo a mano.
+            guardado = False
+
             if tarea.es_evidencia:
                 cv2.imwrite(str(dir_recortes / nombre), recorte,
                             [cv2.IMWRITE_JPEG_QUALITY, 95])
                 evidencia = ruta_recorte
+                guardado = True
 
             if not tarea.es_candidato:
                 continue
@@ -222,9 +225,13 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
             except PlacaError:
                 continue
 
-            for encontrada in encontradas:
+            # Un solo archivo por observacion: escribirlo por cada placa
+            # encontrada reescribia el mismo contenido varias veces.
+            if encontradas and not guardado:
                 cv2.imwrite(str(dir_recortes / nombre), recorte,
                             [cv2.IMWRITE_JPEG_QUALITY, 95])
+
+            for encontrada in encontradas:
                 lecturas.append(Lectura(
                     cuadro=tarea.cuadro,
                     texto=encontrada.texto,

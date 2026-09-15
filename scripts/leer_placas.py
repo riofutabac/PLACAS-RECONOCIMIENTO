@@ -135,8 +135,12 @@ def main():
     # otro que pasara entretanto.
     agenda = construir_agenda(vehiculos, AREA_MINIMA_PARA_LEER)
 
+    total_candidatos = sum(
+        1 for tareas in agenda.values() for t in tareas if t.es_candidato
+    )
     total_recortes = sum(len(v) for v in agenda.values())
-    print(f"Cuadros a analizar: {len(agenda)} ({total_recortes} recortes)")
+    print(f"Cuadros a analizar: {len(agenda)} ({total_recortes} recortes, "
+          f"{total_candidatos} con lectura)")
 
     try:
         lector = LectorPlacas()
@@ -159,43 +163,53 @@ def main():
 
             for tarea in pendientes:
                 nombre = f"v{tarea.indice + 1:02d}_f{numero}.jpg"
+                ruta_recorte = f"placas/{nombre}"
 
-                # El recorte de la evidencia se guarda sin esperar al OCR: un
-                # vehículo sin placa legible sigue necesitando su foto.
+                # Un solo recorte por observación: recalcularlo por cada placa
+                # encontrada repetía el trabajo y reescribía el mismo archivo.
+                try:
+                    recorte = recortar_vehiculo(cuadro, tarea.caja)
+                except PlacaError:
+                    continue
+
+                guardado = False
+
+                # La evidencia se guarda sin esperar al OCR: un vehículo sin
+                # placa legible sigue necesitando su foto.
                 if tarea.es_evidencia:
-                    try:
-                        recorte = recortar_vehiculo(cuadro, tarea.caja)
-                    except PlacaError:
-                        pass
-                    else:
-                        cv2.imwrite(str(dir_recortes / nombre), recorte,
-                                    [cv2.IMWRITE_JPEG_QUALITY, 95])
-                        evidencia_por_vehiculo[tarea.indice] = f"placas/{nombre}"
+                    cv2.imwrite(str(dir_recortes / nombre), recorte,
+                                [cv2.IMWRITE_JPEG_QUALITY, 95])
+                    evidencia_por_vehiculo[tarea.indice] = ruta_recorte
+                    guardado = True
 
                 if not tarea.es_candidato:
                     continue
 
                 analizados += 1
                 try:
-                    encontradas = lector.leer_vehiculo(cuadro, tarea.caja)
+                    # El recorte ya trae el margen del lector: leer_vehiculo lo
+                    # aplicaría por segunda vez sobre el cuadro completo.
+                    encontradas = lector.leer(recorte)
                 except PlacaError:
                     continue
 
+                if encontradas and not guardado:
+                    cv2.imwrite(str(dir_recortes / nombre), recorte,
+                                [cv2.IMWRITE_JPEG_QUALITY, 95])
+
                 for encontrada in encontradas:
-                    recorte = recortar_vehiculo(cuadro, tarea.caja)
-                    cv2.imwrite(str(dir_recortes / nombre), recorte, [cv2.IMWRITE_JPEG_QUALITY, 95])
                     lecturas_por_vehiculo[tarea.indice].append(
                         Lectura(
                             cuadro=numero,
                             texto=encontrada.texto,
                             confianza=encontrada.confianza,
-                            imagen_recorte=f"placas/{nombre}",
+                            imagen_recorte=ruta_recorte,
                             confianza_minima=encontrada.confianza_minima,
                         )
                     )
 
             if analizados % 50 == 0:
-                print(f"  {analizados}/{total_recortes} recortes analizados", flush=True)
+                print(f"  {analizados}/{total_candidatos} recortes analizados", flush=True)
     except VideoLecturaError as err:
         print(f"Error al leer el video: {err}", file=sys.stderr)
         sys.exit(1)
