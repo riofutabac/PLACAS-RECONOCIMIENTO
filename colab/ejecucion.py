@@ -78,39 +78,45 @@ def ejecutar(comando, repo, log):
 
 
 def procesar(videos, salida, python, repo, limite=None, local='/content', runner=ejecutar, acelerador='gpu', paso=3):
-    """Prueba el primer video o continúa todo; verifica el checkpoint de cada uno."""
+    """Procesa videos en Colab reutilizando los modelos en un único proceso, copiando archivo por archivo a disco local."""
+    salida = Path(salida)
+    salida.mkdir(parents=True, exist_ok=True)
     seleccion = videos if limite is None else videos[:limite]
-    for indice, video in enumerate(seleccion, 1):
-        if video.name in leer_avance(salida):
-            print(f'[{indice}/{len(seleccion)}] Ya terminado: {video.name}', flush=True)
-            continue
-        if shutil.disk_usage(local).free < video.stat().st_size + 1024**3:
-            raise RuntimeError('Falta espacio local para copiar el siguiente video (más 1 GB de margen).')
-        print(f'[{indice}/{len(seleccion)}] Copiando desde Drive: {video.name}', flush=True)
-        with tempfile.TemporaryDirectory(prefix='lastre-video-', dir=local) as temporal:
-            destino = Path(temporal) / video.name
-            shutil.copy2(video, destino)
-            if destino.stat().st_size != video.stat().st_size:
-                raise OSError(f'La copia quedó incompleta: {video.name}')
-            comando = [str(python), '-u', '-c', LANZADOR,
-                       str(Path(repo) / 'scripts/procesar_lote.py'), temporal,
-                       '--out-dir', str(salida), '--acelerador', acelerador,
-                       '--paso', str(paso), '--paso-movimiento', '1',
-                       '--escala-movimiento', '0.25', '--observaciones-minimas', '10']
-            runner(comando, repo, Path(salida) / 'procesamiento.log')
-            # El script puede informar fallos por video y aun así salir con 0.
-            if video.name not in leer_avance(salida):
-                raise RuntimeError(f'No se completó {video.name}. Revisa procesamiento.log y reintenta esta celda.')
-    # El resumen debe contar solo los videos terminados, igual que sus filas.
-    # Los enlaces permiten leer metadatos sin volver a copiar todo el lote.
+
+    # Identificar videos que faltan por procesar
     hechos = leer_avance(salida)
-    if hechos:
-        with tempfile.TemporaryDirectory(prefix='lastre-informe-', dir=local) as temporal:
-            for video in videos:
-                if video.name in hechos:
-                    (Path(temporal) / video.name).symlink_to(video.resolve())
-            comando = [str(python), '-u', '-c', LANZADOR,
-                       str(Path(repo) / 'scripts/procesar_lote.py'), temporal,
-                       '--out-dir', str(salida), '--solo-informe', '--acelerador', acelerador]
-            runner(comando, repo, Path(salida) / 'procesamiento.log')
+    pendientes = [v for v in seleccion if v.name not in hechos]
+
+    if not pendientes:
+        print(f'Todos los videos seleccionados ({len(seleccion)}) ya están procesados en {salida}.', flush=True)
+    else:
+        print(f'Procesando {len(pendientes)} videos pendientes (de {len(seleccion)} seleccionados) '
+              f'en un único proceso con modelos precargados...', flush=True)
+
+        archivo_lista = salida / 'lista_videos_ejecucion.txt'
+        archivo_lista.write_text('\n'.join(str(v.resolve()) for v in pendientes), encoding='utf-8')
+        carpeta_base = seleccion[0].parent if seleccion else salida
+
+        comando = [
+            str(python), '-u', '-c', LANZADOR,
+            str(Path(repo) / 'scripts/procesar_lote.py'), str(carpeta_base),
+            '--lista-videos', str(archivo_lista),
+            '--disco-local', str(local),
+            '--out-dir', str(salida),
+            '--acelerador', acelerador,
+            '--paso', str(paso),
+            '--paso-movimiento', '1',
+            '--escala-movimiento', '0.25',
+            '--observaciones-minimas', '10'
+        ]
+
+        runner(comando, repo, salida / 'procesamiento.log')
+
+        # Verificar que los videos pendientes se hayan completado en el checkpoint
+        hechos_ahora = leer_avance(salida)
+        for v in pendientes:
+            if v.name not in hechos_ahora:
+                raise RuntimeError(f'No se completó {v.name}. Revisa procesamiento.log y reintenta esta celda.')
+
     print(f'Terminados: {len(leer_avance(salida))}/{len(videos)}. Resultados: {salida}', flush=True)
+

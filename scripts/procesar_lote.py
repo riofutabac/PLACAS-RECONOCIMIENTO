@@ -12,7 +12,9 @@ import argparse
 from datetime import datetime, timedelta
 from pathlib import Path
 import re
+import shutil
 import sys
+import tempfile
 import time
 
 # Permite ejecutar el script sin instalar el paquete
@@ -91,6 +93,10 @@ def parse_args():
                         help="Detecciones mínimas para considerar que hubo un vehículo.")
     parser.add_argument("--hilos", type=int, default=None,
                         help="Número de hilos de cómputo del modelo en CPU (None para automático).")
+    parser.add_argument("--disco-local", type=str, default=None,
+                        help="Directorio local para copiar y procesar los videos de uno en uno (útil en Colab).")
+    parser.add_argument("--lista-videos", type=str, default=None,
+                        help="Archivo de texto con la lista de rutas exactas de videos a procesar.")
     parser.add_argument("--solo-salidas", action="store_true",
                         help="Incluir únicamente los vehículos que salen por el lastre.")
     parser.add_argument("--acelerador", choices=("auto", "gpu", "cpu"), default="auto",
@@ -310,10 +316,26 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
 def main():
     args = parse_args()
 
-    carpeta = Path(args.carpeta)
-    if not carpeta.is_dir():
-        print(f"No es una carpeta: '{carpeta}'", file=sys.stderr)
-        sys.exit(1)
+    lista_videos = getattr(args, "lista_videos", None)
+    if lista_videos:
+        archivo_lista = Path(lista_videos)
+        if not archivo_lista.is_file():
+            print(f"No existe el archivo de lista de videos: '{archivo_lista}'", file=sys.stderr)
+            sys.exit(1)
+        videos = [
+            Path(line.strip())
+            for line in archivo_lista.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        carpeta = Path(args.carpeta) if Path(args.carpeta).is_dir() else (videos[0].parent if videos else Path("."))
+        if getattr(args, "limite", None):
+            videos = videos[:args.limite]
+    else:
+        carpeta = Path(args.carpeta)
+        if not carpeta.is_dir():
+            print(f"No es una carpeta: '{carpeta}'", file=sys.stderr)
+            sys.exit(1)
+        videos = listar_videos(carpeta, getattr(args, "limite", None))
 
     try:
         config = cargar_configuracion(args.config)
@@ -327,7 +349,6 @@ def main():
         print(f"Error de aceleracion: {err}", file=sys.stderr)
         sys.exit(1)
 
-    videos = listar_videos(carpeta, args.limite)
     if not videos:
         print(f"No se encontraron videos en '{carpeta}'", file=sys.stderr)
         sys.exit(1)
@@ -433,17 +454,42 @@ def main():
             continue
 
         print(f"\n--- {video.name} ---", flush=True)
+        ruta_video = video
+        temp_dir = None
+        disco_local = getattr(args, "disco_local", None)
+        if disco_local:
+            dir_local = Path(disco_local)
+            if not dir_local.is_dir():
+                print(f"No existe el directorio local: {dir_local}", file=sys.stderr)
+                sys.exit(1)
+            espacio_libre = shutil.disk_usage(dir_local).free
+            espacio_req = video.stat().st_size + 1024**3
+            if espacio_libre < espacio_req:
+                print(f"Falta espacio local en {dir_local} para copiar {video.name} "
+                      f"({espacio_libre / (1024**2):.1f} MB libres, se requieren {espacio_req / (1024**2):.1f} MB)",
+                      file=sys.stderr)
+                sys.exit(1)
+            print(f"    Copiando a disco local ({dir_local})...", flush=True)
+            temp_dir = tempfile.TemporaryDirectory(prefix="lastre-video-", dir=dir_local)
+            ruta_video = Path(temp_dir.name) / video.name
+            shutil.copy2(video, ruta_video)
+            if ruta_video.stat().st_size != video.stat().st_size:
+                temp_dir.cleanup()
+                raise OSError(f"La copia quedó incompleta: {video.name}")
+
         try:
-            filas = procesar_video(video, config, lector, progreso, args,
+            filas = procesar_video(ruta_video, config, lector, progreso, args,
                                    dir_recortes, proveedores, plantillas_reloj, medidor,
                                    detector_vehiculos=detector_vehiculos)
-            cuadros = obtener_metadatos_video(video).total_cuadros
+            cuadros = obtener_metadatos_video(ruta_video).total_cuadros
             avance.guardar_video(video.name, filas, cuadros=cuadros)
             print(f"    {len(filas)} vehiculos registrados y guardados", flush=True)
         except (VideoLecturaError, OSError, EvidenciaError) as err:
             fallidos.append((video.name, str(err)))
             print(f"    ERROR: {err}", file=sys.stderr)
         finally:
+            if temp_dir is not None:
+                temp_dir.cleanup()
             import gc
             gc.collect()
         progreso.terminar_video()

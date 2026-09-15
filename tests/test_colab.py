@@ -25,25 +25,28 @@ def test_rutas_con_espacios_mayusculas_y_reanudacion(tmp_path):
 
     def runner(cmd, repo, log):
         comandos.append(cmd)
-        if '--solo-informe' in cmd:
-            enlaces = list(Path(cmd[5]).iterdir())
-            assert all(p.is_symlink() and p.resolve().parent == entrada for p in enlaces)
-            assert len(enlaces) == len(json.loads((salida / 'avance.json').read_text())['videos'])
-            return
-        temporal = Path(cmd[5])
-        copia = next(temporal.iterdir())
-        assert copia.read_bytes() == b'video'
-        assert temporal != entrada
+        assert '--lista-videos' in cmd
+        assert '--disco-local' in cmd
+        idx_lista = cmd.index('--lista-videos')
+        archivo_lista = Path(cmd[idx_lista + 1])
+        assert archivo_lista.is_file()
+        rutas = [Path(line.strip()) for line in archivo_lista.read_text(encoding='utf-8').splitlines() if line.strip()]
+        assert all(r.is_file() and r.parent == entrada for r in rutas)
+
         archivo = salida / 'avance.json'
         avance = json.loads(archivo.read_text()) if archivo.exists() else {'videos': {}}
-        avance['videos'][copia.name] = {'filas': [], 'cuadros': 1}
+        for r in rutas:
+            avance['videos'][r.name] = {'filas': [], 'cuadros': 1}
         archivo.write_text(json.dumps(avance))
 
+    # Primera corrida: límite=1 (procesa 1 video)
     procesar(videos, salida, 'python', tmp_path, limite=1, local=tmp_path, runner=runner)
+    assert len(comandos) == 1
+
+    # Segunda corrida: reanuda el lote completo en un único proceso para los videos pendientes
     procesar(videos, salida, 'python', tmp_path, local=tmp_path, runner=runner)
-    assert len([c for c in comandos if '--solo-informe' not in c]) == 2
+    assert len(comandos) == 2
     assert all(p.exists() for p in videos)
-    assert not list(tmp_path.glob('lastre-video-*'))
     assert len(json.loads((salida / 'avance.json').read_text())['videos']) == 2
 
 

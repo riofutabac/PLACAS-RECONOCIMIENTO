@@ -119,7 +119,7 @@ def parsear_desglose_medidor(salida_stdout: str) -> Dict[str, Dict[str, float]]:
     lineas = salida_stdout.splitlines()
     dentro_informe = False
     for linea in lineas:
-        if "ETAPA" in linea and "TIEMPO" in linea and "LLAMADAS" in linea:
+        if "etapa" in linea.lower() and "llamadas" in linea.lower():
             dentro_informe = True
             continue
         if dentro_informe:
@@ -251,7 +251,10 @@ def ejecutar_corrida(
     if ruta_avance.is_file():
         try:
             avance_data = json.loads(ruta_avance.read_text(encoding="utf-8"))
-            for v_nom, v_info in avance_data.items():
+            videos_dict = avance_data.get("videos", avance_data)
+            for v_nom, v_info in videos_dict.items():
+                if not isinstance(v_info, dict):
+                    continue
                 cuadros_totales += v_info.get("cuadros", 0)
                 filas = v_info.get("filas", [])
                 vehiculos_totales += len(filas)
@@ -267,12 +270,13 @@ def ejecutar_corrida(
                             img_tamano = ruta_img.stat().st_size
                     vehiculos_limpios.append({
                         "video": fila.get("video"),
-                        "registro": fila.get("registro"),
+                        "registro": fila.get("registro") or f"T{fila.get('trayectoria_id')}",
+                        "trayectoria_id": fila.get("trayectoria_id"),
                         "hora_paso": fila.get("hora_paso"),
                         "tiempo_video": fila.get("tiempo_video"),
                         "sentido": fila.get("sentido"),
-                        "tipo": fila.get("tipo"),
-                        "placa_leida": fila.get("placa_leida"),
+                        "tipo": fila.get("tipo_vehiculo") or fila.get("tipo"),
+                        "placa_leida": fila.get("placa") or fila.get("placa_leida"),
                         "confianza": fila.get("confianza"),
                         "consenso": fila.get("consenso"),
                         "estado": fila.get("estado"),
@@ -356,9 +360,13 @@ def generar_auditoria_vehiculos(
                 # Hallar coincidencia
                 veh_hallado = None
                 for c_veh in filas_corrida:
-                    # Coincidencia por hora exacta o minuto cercano
-                    if c_veh.get("hora_paso") == ref_veh["hora_reloj"] or (
-                        ref_veh["hora_reloj"][:5] in (c_veh.get("hora_paso") or "")
+                    h_paso = c_veh.get("hora_paso") or ""
+                    # Coincidencia si la hora esperada "16:17:46" está en "2026-09-09 16:17:46"
+                    # o por trayectoria_id o por tiempo_video
+                    if (
+                        c_veh.get("sentido") == ref_veh["sentido"]
+                        and (ref_veh["hora_reloj"] in h_paso
+                             or (ref_veh.get("tiempo_video") and ref_veh["tiempo_video"] == c_veh.get("tiempo_video")))
                     ):
                         veh_hallado = c_veh
                         break
@@ -366,6 +374,14 @@ def generar_auditoria_vehiculos(
                 if veh_hallado:
                     fila_auditoria["corridas"][clave_corrida] = {
                         "hallado": True,
+                        "resultado_coincide": all(
+                            veh_hallado.get(actual) == ref_veh.get(esperado)
+                            for actual, esperado in (("placa_leida", "placa_leida"),
+                                                     ("estado", "estado"),
+                                                     ("lecturas", "lecturas"),
+                                                     ("confianza", "confianza"),
+                                                     ("consenso", "consenso"))
+                        ),
                         "registro": veh_hallado.get("registro"),
                         "hora_paso": veh_hallado.get("hora_paso"),
                         "sentido": veh_hallado.get("sentido"),
@@ -429,12 +445,55 @@ def compilar_estadisticas(resultados: List[ResultadoCorrida]) -> Dict[str, Any]:
     }
 
 
+def regenerar_informe(base=BASE_OUT_DIR, referencia=REF_BASE_PATH):
+    """Reconstruye la auditoría desde checkpoints sin ejecutar modelos ni alterar métricas crudas."""
+    resultados = []
+    for ruta in sorted(base.glob("ronda_*/metricas_corrida.json")):
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        avance = json.loads((ruta.parent / "avance.json").read_text(encoding="utf-8"))
+        videos = avance["videos"]
+        datos["vehiculos_por_video"] = {}
+        datos["cuadros_analizados"] = 0
+        datos["vehiculos_totales"] = 0
+        datos["errores"] = [e for e in datos["errores"] if not e.startswith("Error parseando avance.json:")]
+        for nombre, info in videos.items():
+            filas = []
+            datos["cuadros_analizados"] += info["cuadros"]
+            for fila in info["filas"]:
+                imagen = ruta.parent / fila["imagen"]
+                filas.append(dict(fila, placa_leida=fila.get("placa"),
+                                  imagen_existe=imagen.is_file(),
+                                  imagen_tamano=imagen.stat().st_size if imagen.is_file() else 0))
+            datos["vehiculos_por_video"][nombre] = filas
+            datos["vehiculos_totales"] += len(filas)
+        resultados.append(ResultadoCorrida(**datos))
+    if not resultados:
+        raise ValueError("No hay corridas guardadas para regenerar")
+    auditoria = generar_auditoria_vehiculos(resultados, json.loads(referencia.read_text(encoding="utf-8")))
+    informe = {
+        "fuente": "Checkpoints originales; tiempos y RSS preservados de metricas_corrida.json",
+        "cuadros": "Conteos de metadatos, no medición de cuadros decodificados",
+        "estadisticas": compilar_estadisticas(resultados),
+        "auditoria_vehiculos": auditoria,
+        "corridas": [asdict(r) for r in resultados],
+    }
+    destino = base / "resultados_comparacion_corregidos.json"
+    destino.write_text(json.dumps(informe, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Informe regenerado sin inferencias: {destino}")
+    return informe
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Benchmark integral antes/después 3 rondas alternadas")
     parser.add_argument("--reiniciar", action="store_true", help="Forzar re-ejecución de todas las corridas")
+    parser.add_argument("--solo-informe", action="store_true", help="Reconstruir resultados guardados sin ejecutar modelos")
     parser.add_argument("--rondas", type=int, default=3, help="Número de rondas alternadas (1 a 3)")
     args = parser.parse_args()
+
+    if args.solo_informe:
+        regenerar_informe()
+        return
 
     asegurar_entorno()
     BASE_OUT_DIR.mkdir(parents=True, exist_ok=True)
