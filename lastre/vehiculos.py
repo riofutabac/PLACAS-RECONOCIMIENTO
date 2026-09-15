@@ -6,6 +6,7 @@ trayectorias. Un modelo de objetos reconoce el vehículo en sí, de modo que
 una sombra nunca produce una detección.
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -165,6 +166,7 @@ class DetectorHibrido:
         detector_vehiculos: DetectorVehiculos,
         paso: int = 3,
         paso_movimiento: int = 1,
+        medidor=None,
     ) -> None:
         """Prepara el detector combinado.
 
@@ -188,6 +190,18 @@ class DetectorHibrido:
         self._cuadros_vistos = 0
         self._cuadros_con_movimiento = 0
         self._cuadros_confirmados = 0
+        # Sin separar ambas etapas, el informe agrupaba filtro e inferencia y
+        # no permitia saber cual conviene aliviar. Una llamada al hibrido no
+        # es una inferencia: la mayoria termina en el filtro barato.
+        self._medidor = medidor
+
+    @contextmanager
+    def _fase(self, nombre: str):
+        if self._medidor is None:
+            yield
+        else:
+            with self._medidor.fase(nombre):
+                yield
 
     @property
     def estadisticas(self) -> dict:
@@ -204,7 +218,9 @@ class DetectorHibrido:
         if self._cuadros_vistos % self._paso_movimiento:
             return ()
 
-        if not self._movimiento.detectar(cuadro):
+        with self._fase("filtro de movimiento"):
+            hay_movimiento = self._movimiento.detectar(cuadro)
+        if not hay_movimiento:
             return ()
 
         self._cuadros_con_movimiento += 1
@@ -212,4 +228,5 @@ class DetectorHibrido:
             return ()
 
         self._cuadros_confirmados += 1
-        return self._vehiculos.detectar(cuadro)
+        with self._fase("modelo de vehiculos"):
+            return self._vehiculos.detectar(cuadro)

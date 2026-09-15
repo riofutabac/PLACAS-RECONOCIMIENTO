@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from lastre.aceleracion import (AceleracionError, describir, elegir_proveedores,
                                 preparar_bibliotecas_gpu, verificar_sesiones)
+from lastre.adelanto import cuadros_adelantados
 from lastre.checkpoint import Checkpoint
 from lastre.config import cargar_configuracion, ConfiguracionError
 from lastre.deduplicacion import deduplicar_por_placa
@@ -124,6 +125,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     metadatos = obtener_metadatos_video(ruta)
     fps = metadatos.fps or 25.0
 
+    medidor = medidor or Medidor()
     detector_vehiculos = DetectorVehiculos(
         config, modelo="rf-detr-nano-384-coco", proveedores=proveedores)
     detector = DetectorHibrido(
@@ -131,6 +133,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
         detector_vehiculos,
         paso=args.paso,
         paso_movimiento=args.paso_movimiento,
+        medidor=medidor,
     )
     seguidor = SeguidorTrayectorias(config)
 
@@ -139,15 +142,16 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     ultimo_informe = time.time()
     marca_referencia = None
 
-    medidor = medidor or Medidor()
-    generador = iterar_cuadros(ruta)
+    generador = cuadros_adelantados(
+        iterar_cuadros(ruta),
+        al_leer=lambda segundos: medidor.anotar("decodificar video", segundos),
+    )
 
     while True:
-        with medidor.fase("decodificar video"):
-            try:
-                numero, cuadro = next(generador)
-            except StopIteration:
-                break
+        try:
+            numero, cuadro = next(generador)
+        except StopIteration:
+            break
 
         # La hora real proviene del reloj impreso por la camara. El nombre del
         # archivo codifica el rango de toda la grabacion, no el inicio de este
@@ -158,8 +162,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
             if momento is not None:
                 marca_referencia = (numero, momento)
 
-        with medidor.fase("detectar vehiculos"):
-            detecciones = tuple(d.como_deteccion for d in detector.detectar(cuadro))
+        detecciones = tuple(d.como_deteccion for d in detector.detectar(cuadro))
         with medidor.fase("seguimiento"):
             trayectorias.extend(seguidor.actualizar(numero, detecciones))
 
@@ -176,6 +179,13 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
             ultimo_informe = time.time()
 
     trayectorias.extend(seguidor.finalizar())
+
+    estadisticas = getattr(detector, "estadisticas", None)
+    if estadisticas is not None:
+        print("Detector: "
+              f"{estadisticas['cuadros_vistos']} cuadros vistos, "
+              f"{estadisticas['cuadros_con_movimiento']} con movimiento, "
+              f"{estadisticas['cuadros_confirmados']} inferencias de vehículos", flush=True)
 
     vehiculos = registrar_vehiculos(
         trayectorias,

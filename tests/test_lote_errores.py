@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from types import SimpleNamespace as NS
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 
 import pytest
 
@@ -27,7 +27,7 @@ def test_flags_movimiento_llegan_a_los_constructores(monkeypatch, tmp_path):
                                args, tmp_path, ()) == []
     movimiento.assert_called_once_with(config, factor_escala=0.125)
     hibrido.assert_called_once_with(movimiento.return_value, vehiculos.return_value,
-                                    paso=5, paso_movimiento=7)
+                                    paso=5, paso_movimiento=7, medidor=ANY)
 
 
 @pytest.mark.parametrize("error", [EvidenciaError("JPEG fallido"), OSError("disco lleno")])

@@ -1,7 +1,7 @@
 """Módulo de detección de movimiento acotado a la zona de análisis."""
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Tuple
 import cv2
 import numpy as np
 
@@ -11,6 +11,19 @@ from lastre.zona import construir_mascara_zona
 
 # MOG2 marca el primer plano con 255 y las sombras con 127
 VALOR_PRIMER_PLANO = 255
+
+
+def _recuadro_de(mascara: np.ndarray, ancho: int, alto: int) -> Tuple[int, int, int, int]:
+    """Devuelve (x_ini, y_ini, x_fin, y_fin) del area util de la mascara.
+
+    Una mascara vacia no tiene recuadro: se conserva el cuadro entero para no
+    romper la detección con un recorte de tamaño cero.
+    """
+    columnas = np.flatnonzero(mascara.any(axis=0))
+    filas = np.flatnonzero(mascara.any(axis=1))
+    if columnas.size == 0 or filas.size == 0:
+        return (0, 0, ancho, alto)
+    return (int(columnas[0]), int(filas[0]), int(columnas[-1]) + 1, int(filas[-1]) + 1)
 
 
 class DeteccionError(RuntimeError):
@@ -63,13 +76,21 @@ class DetectorMovimiento:
         self._alto_proc = max(1, int(alto_orig * factor_escala))
 
         if self._factor_escala < 1.0:
-            self._mascara_proc = cv2.resize(
+            mascara_escalada = cv2.resize(
                 self._mascara_completa,
                 (self._ancho_proc, self._alto_proc),
                 interpolation=cv2.INTER_NEAREST,
             )
         else:
-            self._mascara_proc = self._mascara_completa.copy()
+            mascara_escalada = self._mascara_completa.copy()
+
+        # MOG2 modela cada pixel por separado, asi que los de fuera de la zona
+        # nunca influyen en los de dentro: recortar al recuadro que contiene
+        # el poligono da exactamente las mismas detecciones y ahorra modelar
+        # mas de la mitad del cuadro que la mascara descartaba despues.
+        self._recorte = _recuadro_de(mascara_escalada, self._ancho_proc, self._alto_proc)
+        x_ini, y_ini, x_fin, y_fin = self._recorte
+        self._mascara_proc = mascara_escalada[y_ini:y_fin, x_ini:x_fin]
 
         # Elementos estructurantes para limpieza morfológica
         self._kernel_open = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
@@ -82,6 +103,12 @@ class DetectorMovimiento:
             varThreshold=umbral_varianza,
             detectShadows=True,
         )
+
+    @property
+    def dimensiones_procesadas(self) -> Tuple[int, int]:
+        """(ancho, alto) que MOG2 modela realmente, ya recortado a la zona."""
+        x_ini, y_ini, x_fin, y_fin = self._recorte
+        return (x_fin - x_ini, y_fin - y_ini)
 
     def reiniciar(self) -> None:
         """Reinicia el modelo de fondo del sustractor."""
@@ -117,6 +144,9 @@ class DetectorMovimiento:
         else:
             cuadro_proc = cuadro
 
+        x_ini, y_ini, x_fin, y_fin = self._recorte
+        cuadro_proc = cuadro_proc[y_ini:y_fin, x_ini:x_fin]
+
         # 2. Aplicar sustracción de fondo
         fg = self._sustractor.apply(cuadro_proc)
 
@@ -145,7 +175,10 @@ class DetectorMovimiento:
                 continue
 
             x, y, w, h = cv2.boundingRect(c)
-            # Escalar de vuelta a dimensiones originales
+            # Los contornos vienen en coordenadas del recorte: primero se
+            # devuelven al cuadro reducido completo y luego al original.
+            x += x_ini
+            y += y_ini
             orig_x = int(round(x * inv_escala))
             orig_y = int(round(y * inv_escala))
             orig_w = int(round(w * inv_escala))

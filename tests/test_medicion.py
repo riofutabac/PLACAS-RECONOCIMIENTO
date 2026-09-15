@@ -101,3 +101,12 @@ def test_informe_incluye_todas_las_etapas():
 
     assert "decodificar" in informe and "modelo" in informe
     assert "TOTAL" in informe
+
+
+def test_informe_declara_etapas_solapadas():
+    medidor = Medidor()
+    medidor.anotar("leer", 2.0)
+    medidor.anotar("procesar", 2.0)
+    medidor.inicio -= 3.0
+
+    assert "solapado entre etapas" in medidor.informe()

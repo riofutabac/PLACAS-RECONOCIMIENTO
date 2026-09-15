@@ -68,3 +68,15 @@ def test_solapa_la_lectura_con_el_consumo():
 
     # En serie serian 6*(0.02+0.02)=0.24 s; solapadas, poco mas de 0.12 s.
     assert transcurrido < 0.20
+
+
+def test_mide_solo_el_trabajo_del_productor():
+    medidas = []
+
+    def origen():
+        time.sleep(0.02)
+        yield (1, "a")
+
+    assert list(cuadros_adelantados(origen(), al_leer=medidas.append)) == [(1, "a")]
+    assert len(medidas) == 1
+    assert medidas[0] >= 0.02
