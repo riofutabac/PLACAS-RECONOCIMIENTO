@@ -121,7 +121,7 @@ class DetectorVehiculos:
         except Exception as exc:  # pragma: no cover - depende del modelo
             raise VehiculoDeteccionError(f"El modelo de detección falló: {exc}") from exc
 
-        vehiculos = []
+        vehiculos = {}
         for cruda in crudas:
             if cruda.label not in CLASES_VEHICULO:
                 continue
@@ -135,9 +135,14 @@ class DetectorVehiculos:
             if not caja_en_zona(deteccion.caja, self._config, criterio=self._criterio_zona):
                 continue
 
-            vehiculos.append(deteccion)
+            # RF-DETR puede emitir la misma caja con varias etiquetas COCO.
+            # Deduplicar antes del seguimiento evita sembrar pistas paralelas.
+            # Cajas distintas se conservan; en empate gana la primera etiqueta.
+            anterior = vehiculos.get(deteccion.caja)
+            if anterior is None or deteccion.confianza > anterior.confianza:
+                vehiculos[deteccion.caja] = deteccion
 
-        return tuple(vehiculos)
+        return tuple(vehiculos.values())
 
 
 class DetectorHibrido:

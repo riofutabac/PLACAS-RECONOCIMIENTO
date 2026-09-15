@@ -112,7 +112,7 @@ def test_motocicleta_se_marca_con_su_tipo(config_zona, cuadro):
 def test_todas_las_clases_de_vehiculo_se_aceptan(config_zona, cuadro):
     """Automóvil, motocicleta, bus y camión son vehículos de interés."""
     crudas = [
-        _Cruda(c, 0.9, _caja_centrada_en(DENTRO, ancho=200 + i))
+        _Cruda(c, 0.9, _caja_centrada_en(DENTRO, ancho=200 + 2 * i))
         for i, c in enumerate(sorted(CLASES_VEHICULO))
     ]
 
