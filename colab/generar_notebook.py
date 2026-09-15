@@ -9,18 +9,6 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 
 def generar():
-    memoria = io.BytesIO()
-    archivos = []
-    for carpeta, patron in [('lastre', '*.py'), ('scripts', '*.py'), ('config', '*')]:
-        archivos.extend(p for p in (ROOT / carpeta).rglob(patron) if p.is_file())
-    archivos += [ROOT / 'colab/ejecucion.py', ROOT / 'requirements.txt']
-    with zipfile.ZipFile(memoria, 'w', zipfile.ZIP_DEFLATED) as z:
-        for p in sorted(archivos):
-            info = zipfile.ZipInfo(p.relative_to(ROOT).as_posix())
-            info.compress_type = zipfile.ZIP_DEFLATED
-            z.writestr(info, p.read_bytes())
-    paquete = memoria.getvalue()
-    firma = hashlib.sha256(paquete).hexdigest()
     cells = []
     def md(s):
         cells.append({'cell_type':'markdown','metadata':{},'source':s.splitlines(True)})
@@ -32,39 +20,47 @@ def generar():
 Después ejecuta los pasos **1 a 6**, de arriba hacia abajo. La primera corrida procesa **un video**.
 Para continuar todos, cambia `MODO` a `lote` en el paso 5 y ejecuta de nuevo ese paso.
 
-Este cuaderno incluye el código del proyecto: no necesitas clonar GitHub ni elegir una rama.
+El paso 1 descarga el código del repositorio. Si quieres probar otra rama, cámbiala allí.
 Los modelos se descargan durante la preparación. La instalación usa un entorno separado y **no requiere reiniciar**.
 Si aparece un error rojo, detente en esa celda; el mensaje indica qué revisar.
 ''')
     md('## 1. Preparar el programa y las dependencias\nPuede tardar varios minutos la primera vez. Espera a ver **PREPARACIÓN LISTA**.')
-    code('''import base64, hashlib, io, json, os, subprocess, sys, zipfile
+    code('''import subprocess, sys
 from pathlib import Path
+
+RAMA = 'codex/base-rapida-paso1' #@param {type:"string"}
+URL = 'https://github.com/riofutabac/PLACAS-RECONOCIMIENTO.git'
 
 if not Path('/content').exists():
     raise RuntimeError('Abre este notebook en Google Colab.')
 if not ((3, 12) <= sys.version_info[:2] <= (3, 13)):
-    raise RuntimeError('Esta instalación requiere Python 3.12 o 3.13. Cambia la versión del entorno de Colab.')
+    raise RuntimeError('Esta instalacion requiere Python 3.12 o 3.13. Cambia la version del entorno de Colab.')
 try:
     subprocess.run(['nvidia-smi', '--query-gpu=name', '--format=csv,noheader'], check=True)
 except (FileNotFoundError, subprocess.CalledProcessError) as exc:
-    raise RuntimeError('Activa GPU en Entorno de ejecución → Cambiar tipo de entorno y vuelve a ejecutar.') from exc
+    raise RuntimeError('Activa GPU en Entorno de ejecucion -> Cambiar tipo de entorno y vuelve a ejecutar.') from exc
 
-VERSION = ''' + repr(firma) + '''
-PAQUETE = ''' + repr(base64.b64encode(paquete).decode()) + '''
-contenido = base64.b64decode(PAQUETE)
-if hashlib.sha256(contenido).hexdigest() != VERSION:
-    raise RuntimeError('El paquete del notebook está incompleto. Abre una copia nueva.')
-REPO = Path('/content') / ('lastre-' + VERSION[:12])
-REPO.mkdir(exist_ok=True)
-with zipfile.ZipFile(io.BytesIO(contenido)) as z:
-    for nombre in z.namelist():
-        if not (REPO / nombre).resolve().is_relative_to(REPO.resolve()):
-            raise RuntimeError('Ruta inválida en el paquete.')
-    z.extractall(REPO)
+REPO = Path('/content/lastre')
+if (REPO / '.git').exists():
+    subprocess.run(['git', '-C', str(REPO), 'fetch', '--quiet', 'origin', RAMA], check=True)
+    subprocess.run(['git', '-C', str(REPO), 'reset', '--hard', '--quiet', 'FETCH_HEAD'], check=True)
+else:
+    subprocess.run(['git', 'clone', '--quiet', '--branch', RAMA, URL, str(REPO)], check=True)
+
+# El commit identifica el codigo medido: los resultados de versiones distintas
+# no se mezclan en la misma carpeta de Drive.
+VERSION = subprocess.run(['git', '-C', str(REPO), 'rev-parse', 'HEAD'],
+                         check=True, capture_output=True, text=True).stdout.strip()
+
+# Entorno aparte: evita que las versiones que Colab trae preinstaladas choquen
+# con las del proyecto, y asi no hace falta reiniciar el entorno.
 PYTHON = REPO / '.venv/bin/python'
 if not PYTHON.exists():
     subprocess.run([sys.executable, '-m', 'venv', str(REPO / '.venv')], check=True)
+
 marca = REPO / '.instalado'
+if marca.exists() and marca.read_text() != VERSION:
+    marca.unlink()
 if not marca.exists():
     requisitos = []
     for linea in (REPO / 'requirements.txt').read_text().splitlines():
@@ -77,7 +73,7 @@ if not marca.exists():
     subprocess.run([str(PYTHON), '-m', 'pip', 'install', 'onnxruntime-gpu[cuda,cudnn]==1.22.0'], check=True)
     subprocess.run([str(PYTHON), '-c', 'import cv2, numpy, fast_alpr, open_image_models, onnxruntime'], check=True)
     marca.write_text(VERSION)
-print('PREPARACIÓN LISTA. Sigue al paso 2. Código:', VERSION[:12])
+print('PREPARACION LISTA. Sigue al paso 2. Codigo:', VERSION[:12])
 ''')
     md('## 2. Conectar Drive y elegir tus carpetas\nSolo cambia estas dos rutas si tus carpetas tienen otro nombre. El programa crea una subcarpeta para esta versión y estos videos; tus informes anteriores permanecen disponibles.')
     code('''from google.colab import drive
@@ -195,7 +191,7 @@ La instalación fija ONNX Runtime 1.22.0 y carga sus bibliotecas CUDA/cuDNN; no 
             c['source'].insert(0, '#@title ' + next(titulos) + '\n')
             c['metadata']['cellView'] = 'form'
     (ROOT/'colab/placas_lastre.ipynb').write_text(json.dumps(notebook, ensure_ascii=False, indent=1)+'\n')
-    print('Notebook generado:', firma[:12], 'bytes:', len(paquete))
+    print('Notebook generado sin codigo incrustado')
 
 if __name__ == '__main__':
     generar()
