@@ -132,15 +132,12 @@ def main():
     # Mapa de cuadro -> lista de (vehiculo, caja) para saber dónde recortar
     por_cuadro = {}
     for indice, vehiculo in enumerate(vehiculos):
-        for trayectoria in trayectorias:
-            if trayectoria.cuadro_inicio < vehiculo.cuadro_inicio:
+        # Solo las observaciones propias del vehiculo. Asociar por contencion
+        # temporal le entregaba las de cualquier otro que pasara entretanto.
+        for posicion in vehiculo.posiciones:
+            if posicion.area < AREA_MINIMA_PARA_LEER:
                 continue
-            if trayectoria.cuadro_fin > vehiculo.cuadro_fin:
-                continue
-            for posicion in trayectoria.posiciones:
-                if posicion.area < AREA_MINIMA_PARA_LEER:
-                    continue
-                por_cuadro.setdefault(posicion.cuadro, []).append((indice, posicion.caja))
+            por_cuadro.setdefault(posicion.cuadro, []).append((indice, posicion.caja))
 
     total_recortes = sum(len(v) for v in por_cuadro.values())
     print(f"Cuadros a analizar: {len(por_cuadro)} ({total_recortes} recortes)")

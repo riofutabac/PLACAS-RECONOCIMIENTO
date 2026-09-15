@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from math import hypot
 from typing import Optional, Sequence, Tuple
 
-from lastre.trayectoria import Trayectoria
+from lastre.trayectoria import Posicion, Trayectoria
 
 
 class RegistroError(ValueError):
@@ -34,6 +34,11 @@ class VehiculoRegistrado:
     desplazamiento_x: int
     caja_representativa: Tuple[int, int, int, int]
     cuadro_representativo: int
+    # Las observaciones que componen este vehiculo, incluidas las de sus
+    # continuaciones. Es la identidad del vehiculo: quien necesite sus recortes
+    # debe leerlas de aqui y nunca reconstruirlas por intervalo de cuadros,
+    # porque otro vehiculo puede pasar entero dentro de ese intervalo.
+    posiciones: Tuple[Posicion, ...]
 
     @property
     def sentido_es_claro(self) -> bool:
@@ -160,6 +165,7 @@ def registrar_vehiculos(
                 desplazamiento_x=int(dx),
                 caja_representativa=mejor.caja,
                 cuadro_representativo=mejor.cuadro,
+                posiciones=trayectoria.posiciones,
             )
         )
 

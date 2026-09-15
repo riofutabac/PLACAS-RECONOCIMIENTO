@@ -19,6 +19,7 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cv2
+import numpy as np
 
 from lastre.aceleracion import AceleracionError, describir, elegir_proveedores
 from lastre.checkpoint import Checkpoint
@@ -183,36 +184,34 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
             continue
 
         lecturas = []
-        for trayectoria in trayectorias:
-            if not (vehiculo.cuadro_inicio <= trayectoria.cuadro_inicio
-                    and trayectoria.cuadro_fin <= vehiculo.cuadro_fin):
+        # Las observaciones propias del vehiculo, no las que caigan dentro de su
+        # intervalo: otro vehiculo puede entrar y salir mientras este sigue en
+        # la zona, y asociarlo por contencion le prestaba su placa.
+        for posicion in vehiculo.posiciones:
+            if posicion.area < AREA_MINIMA_PARA_LEER:
                 continue
-            for posicion in trayectoria.posiciones:
-                if posicion.area < AREA_MINIMA_PARA_LEER:
-                    continue
-                codificado = cuadros_guardados.get(posicion.cuadro)
-                if codificado is None:
-                    continue
-                import numpy as np
-                imagen = cv2.imdecode(np.frombuffer(codificado, np.uint8), cv2.IMREAD_COLOR)
-                try:
-                    with medidor.fase("leer placa"):
-                        encontradas = lector.leer_vehiculo(imagen, posicion.caja)
-                except PlacaError:
-                    continue
-                for encontrada in encontradas:
-                    nombre = f"{ruta.stem}_v{indice + 1:02d}_f{posicion.cuadro}.jpg"
-                    x, y, ancho, alto = posicion.caja
-                    cv2.imwrite(str(dir_recortes / nombre),
-                                imagen[y:y + alto, x:x + ancho],
-                                [cv2.IMWRITE_JPEG_QUALITY, 95])
-                    lecturas.append(Lectura(
-                        cuadro=posicion.cuadro,
-                        texto=encontrada.texto,
-                        confianza=encontrada.confianza,
-                        imagen_recorte=f"recortes/{nombre}",
-                        confianza_minima=encontrada.confianza_minima,
-                    ))
+            codificado = cuadros_guardados.get(posicion.cuadro)
+            if codificado is None:
+                continue
+            imagen = cv2.imdecode(np.frombuffer(codificado, np.uint8), cv2.IMREAD_COLOR)
+            try:
+                with medidor.fase("leer placa"):
+                    encontradas = lector.leer_vehiculo(imagen, posicion.caja)
+            except PlacaError:
+                continue
+            for encontrada in encontradas:
+                nombre = f"{ruta.stem}_v{indice + 1:02d}_f{posicion.cuadro}.jpg"
+                x, y, ancho, alto = posicion.caja
+                cv2.imwrite(str(dir_recortes / nombre),
+                            imagen[y:y + alto, x:x + ancho],
+                            [cv2.IMWRITE_JPEG_QUALITY, 95])
+                lecturas.append(Lectura(
+                    cuadro=posicion.cuadro,
+                    texto=encontrada.texto,
+                    confianza=encontrada.confianza,
+                    imagen_recorte=f"recortes/{nombre}",
+                    confianza_minima=encontrada.confianza_minima,
+                ))
 
         resultado = consolidar_lecturas(lecturas, args.umbral, args.minimo_lecturas)
         crudos.append({
