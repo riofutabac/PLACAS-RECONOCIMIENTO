@@ -18,7 +18,16 @@ MODO_CPU = "cpu"
 MODOS = (MODO_AUTO, MODO_GPU, MODO_CPU)
 
 PROVEEDOR_CPU = "CPUExecutionProvider"
+
+# Proveedores que cuentan como GPU al comprobar donde quedo una sesion.
 PROVEEDORES_GPU = ("CUDAExecutionProvider", "TensorrtExecutionProvider")
+
+# El unico que se solicita. TensorRT viene compilado en onnxruntime-gpu pero
+# sus bibliotecas (libnvinfer) no se instalan con el paquete, y ONNX Runtime
+# descarta la lista COMPLETA si un proveedor pedido falla al cargar: pedir
+# TensorRT sin sus bibliotecas hace caer tambien CUDA y todo acaba en
+# procesador. Observado en Colab con onnxruntime-gpu 1.22.
+PROVEEDOR_GPU_SOLICITADO = "CUDAExecutionProvider"
 
 
 def proveedores_disponibles() -> Tuple[str, ...]:
@@ -51,12 +60,12 @@ def elegir_proveedores(modo: str, disponibles: Sequence[str] = None) -> Tuple[st
     if modo == MODO_CPU:
         return (PROVEEDOR_CPU,)
 
-    gpus = tuple(p for p in PROVEEDORES_GPU if p in lista)
+    gpus = (PROVEEDOR_GPU_SOLICITADO,) if PROVEEDOR_GPU_SOLICITADO in lista else ()
 
     if modo == MODO_GPU:
         if not gpus:
             raise AceleracionError(
-                "Se pidió GPU pero onnxruntime no reporta ningún proveedor de GPU. "
+                "Se pidió GPU pero onnxruntime no reporta CUDAExecutionProvider. "
                 f"Disponibles: {lista}. Instale 'onnxruntime-gpu'."
             )
         return gpus + (PROVEEDOR_CPU,)

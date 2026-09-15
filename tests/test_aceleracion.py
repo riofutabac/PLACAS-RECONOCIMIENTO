@@ -206,3 +206,22 @@ def test_una_version_sin_preload_no_rompe_el_lote():
     from lastre.aceleracion import preparar_bibliotecas_gpu
 
     assert preparar_bibliotecas_gpu(_OrtFalso(con_preload=False)) is False
+
+
+def test_no_se_pide_tensorrt_aunque_este_compilado():
+    """Pedir TensorRT sin sus bibliotecas tumba la lista entera a procesador.
+
+    Reproducido en Colab: onnxruntime-gpu compila el proveedor de TensorRT
+    pero libnvinfer no viene instalada. Al pedirlo, ONNX Runtime descarta
+    tambien CUDA y reintenta solo con CPU, sin que nadie lo note.
+    """
+    elegidos = elegir_proveedores("gpu", CON_GPU)
+
+    assert "TensorrtExecutionProvider" not in elegidos
+    assert elegidos == ("CUDAExecutionProvider", PROVEEDOR_CPU)
+
+
+def test_tensorrt_solo_no_cuenta_como_gpu_utilizable():
+    """Sin CUDA no hay nada que pedir, aunque TensorRT figure disponible."""
+    with pytest.raises(AceleracionError):
+        elegir_proveedores("gpu", ("TensorrtExecutionProvider", PROVEEDOR_CPU))
