@@ -1,0 +1,177 @@
+{
+  "version_codigo": "fc311e9d120649823e44ba5ad7b6cc7def6f1360 (con correcion de apertura y prueba de video)",
+  "fecha_referencia": "2026-09-15",
+  "hardware": {
+    "sistema": "macOS 14.8.8",
+    "cpu": "Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz",
+    "nucleos_fisicos": 2,
+    "hilos_logicos": 4,
+    "ram_bytes": 8589934592,
+    "acelerador": "CPU (CPUExecutionProvider)",
+    "backend_video": "AVFOUNDATION (OpenCV 5.0.0)"
+  },
+  "configuracion": {
+    "zona": "config/zona.json",
+    "reloj": "config/reloj.json",
+    "modelo_detector": "rf-detr-nano-384-coco",
+    "paso": 3,
+    "paso_movimiento": 1,
+    "escala_movimiento": 0.25,
+    "umbral": 0.75,
+    "minimo_lecturas": 2,
+    "observaciones_minimas": 10,
+    "lectura_adelantada": true,
+    "capacidad_cola": 2
+  },
+  "tiempos_referencia_cpu_lote_60_61": {
+    "tiempo_pared_segundos": 1051.5,
+    "inferencia_rf_detr_segundos": 596.5,
+    "inferencias_rf_detr": 831,
+    "decodificacion_segundos": 329.0,
+    "movimiento_segundos": 299.0,
+    "solapamiento_segundos": 235.1
+  },
+  "videos": {
+    "Camara Placas 2_20260909105651-20260909163038(60).mp4": {
+      "cuadros_totales": 8223,
+      "rango_reloj": "16:17:17 a 16:22:47",
+      "total_vehiculos_esperados": 5,
+      "salidas": 1,
+      "entradas": 4,
+      "vehiculos": [
+        {
+          "indice": 1,
+          "trayectoria_id": 1,
+          "hora_reloj": "16:17:46",
+          "tiempo_video": "00:30",
+          "sentido": "sale",
+          "tipo_real": "automovil",
+          "descripcion": "Chevrolet Aveo gris",
+          "placa_leida": "PCM2497",
+          "placa_real_legible": "PCM2497",
+          "confianza": 0.941,
+          "consenso": 0.229,
+          "lecturas": 9,
+          "estado": "pendiente de revision"
+        },
+        {
+          "indice": 2,
+          "trayectoria_id": 3,
+          "hora_reloj": "16:19:03",
+          "tiempo_video": "01:47",
+          "sentido": "entra",
+          "tipo_real": "camion (cisterna de agua)",
+          "descripcion": "cisterna de agua",
+          "placa_leida": "PCG3981",
+          "placa_real_legible": "PCG3981",
+          "confianza": 0.964,
+          "consenso": 0.111,
+          "lecturas": 3,
+          "estado": "pendiente de revision",
+          "observacion": "Clasificado en reporte como automovil por formato de placa; fisicamente es camion cisterna"
+        },
+        {
+          "indice": 3,
+          "trayectoria_id": 4,
+          "hora_reloj": "16:19:10",
+          "tiempo_video": "01:54",
+          "sentido": "entra",
+          "tipo_real": "automovil (camioneta)",
+          "descripcion": "camioneta",
+          "placa_leida": "TAA2204",
+          "placa_real_legible": "TAA2204",
+          "confianza": 0.95,
+          "consenso": 0.552,
+          "lecturas": 18,
+          "estado": "validado"
+        },
+        {
+          "indice": 4,
+          "trayectoria_id": 5,
+          "hora_reloj": "16:19:17",
+          "tiempo_video": "02:01",
+          "sentido": "entra",
+          "tipo_real": "motocicleta",
+          "descripcion": "casi junto a los dos anteriores",
+          "placa_leida": "JJ4306",
+          "placa_real_legible": "JJ4306",
+          "confianza": 0.675,
+          "consenso": 0.353,
+          "lecturas": 1,
+          "estado": "pendiente de revision"
+        },
+        {
+          "indice": 5,
+          "trayectoria_id": 9,
+          "hora_reloj": "16:21:46",
+          "tiempo_video": "04:30",
+          "sentido": "entra",
+          "tipo_real": "automovil (camioneta)",
+          "descripcion": "ultima camioneta",
+          "placa_leida": "VE9715",
+          "placa_real_legible": null,
+          "confianza": 0.722,
+          "consenso": 0.105,
+          "lecturas": 1,
+          "estado": "pendiente de revision",
+          "observacion": "Clasificada por formato como motocicleta (formato 2 letras + 4 digitos)"
+        }
+      ]
+    },
+    "Camara Placas 2_20260909105651-20260909163038(61).mp4": {
+      "cuadros_totales": 8231,
+      "rango_reloj": "16:22:47 a 16:28:17",
+      "total_vehiculos_esperados": 3,
+      "salidas": 3,
+      "entradas": 0,
+      "vehiculos": [
+        {
+          "indice": 1,
+          "trayectoria_id": 1,
+          "hora_reloj": "16:24:11",
+          "tiempo_video": "01:25",
+          "sentido": "sale",
+          "tipo_real": "automovil (furgoneta escolar JAC)",
+          "descripcion": "furgoneta escolar JAC",
+          "placa_leida": "BAC2573",
+          "placa_real_legible": "PAC2573",
+          "confianza": 0.949,
+          "consenso": 0.158,
+          "lecturas": 6,
+          "estado": "pendiente de revision",
+          "observacion": "Fila 35 de revision manual: placa real PAC2573. Error de OCR: P leida como B"
+        },
+        {
+          "indice": 2,
+          "trayectoria_id": 2,
+          "hora_reloj": "16:26:11",
+          "tiempo_video": "03:25",
+          "sentido": "sale",
+          "tipo_real": "automovil",
+          "descripcion": "automovil",
+          "placa_leida": "MZS872",
+          "placa_real_legible": "MZS872",
+          "confianza": 0.629,
+          "consenso": 1.0,
+          "lecturas": 1,
+          "estado": "pendiente de revision"
+        },
+        {
+          "indice": 3,
+          "trayectoria_id": 3,
+          "hora_reloj": "16:28:03",
+          "tiempo_video": "05:17",
+          "sentido": "sale",
+          "tipo_real": "automovil",
+          "descripcion": "automovil",
+          "placa_leida": "PAB6741",
+          "placa_real_legible": "PAB6741",
+          "confianza": 0.972,
+          "consenso": 0.656,
+          "lecturas": 30,
+          "estado": "validado"
+        }
+      ]
+    }
+  }
+}

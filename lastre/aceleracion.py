@@ -39,6 +39,24 @@ def proveedores_disponibles() -> Tuple[str, ...]:
     return tuple(onnxruntime.get_available_providers())
 
 
+def configurar_opciones_sesion(hilos: int = None):
+    """Construye SessionOptions de ONNX Runtime con número de hilos específico.
+
+    Si hilos es None o <= 0, devuelve None para usar el comportamiento predeterminado del runtime.
+    """
+    if hilos is None or hilos <= 0:
+        return None
+    try:
+        import onnxruntime as ort
+    except ImportError as exc:  # pragma: no cover
+        raise AceleracionError("onnxruntime no está instalado") from exc
+
+    opciones = ort.SessionOptions()
+    opciones.intra_op_num_threads = int(hilos)
+    opciones.inter_op_num_threads = 1
+    return opciones
+
+
 def hay_gpu(disponibles: Sequence[str] = None) -> bool:
     """Indica si alguno de los proveedores de GPU está disponible."""
     lista = tuple(disponibles) if disponibles is not None else proveedores_disponibles()

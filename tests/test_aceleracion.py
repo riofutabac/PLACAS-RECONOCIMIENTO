@@ -225,3 +225,20 @@ def test_tensorrt_solo_no_cuenta_como_gpu_utilizable():
     """Sin CUDA no hay nada que pedir, aunque TensorRT figure disponible."""
     with pytest.raises(AceleracionError):
         elegir_proveedores("gpu", ("TensorrtExecutionProvider", PROVEEDOR_CPU))
+
+
+def test_configurar_opciones_sesion_con_hilos():
+    """Verifica que se configuren intra y inter op threads al especificar hilos."""
+    from lastre.aceleracion import configurar_opciones_sesion
+    opciones = configurar_opciones_sesion(hilos=2)
+    assert opciones is not None
+    assert opciones.intra_op_num_threads == 2
+    assert opciones.inter_op_num_threads == 1
+
+
+def test_configurar_opciones_sesion_por_defecto():
+    """Sin hilos o con valor <= 0 devuelve None para usar runtime default."""
+    from lastre.aceleracion import configurar_opciones_sesion
+    assert configurar_opciones_sesion(None) is None
+    assert configurar_opciones_sesion(0) is None
+    assert configurar_opciones_sesion(-1) is None

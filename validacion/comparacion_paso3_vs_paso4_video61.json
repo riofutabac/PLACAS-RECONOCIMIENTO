@@ -1,0 +1,111 @@
+{
+  "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+  "metricas": {
+    "paso3": {
+      "tiempo_total_s": 346.859,
+      "tiempo_inferencia_s": 186.064,
+      "inferencias": 311,
+      "vehiculos_registrados": 3
+    },
+    "paso4": {
+      "tiempo_total_s": 306.419,
+      "tiempo_inferencia_s": 144.992,
+      "inferencias": 233,
+      "vehiculos_registrados": 3
+    },
+    "diferencia": {
+      "ahorro_tiempo_total_s": 40.44,
+      "ahorro_tiempo_total_pct": 11.66,
+      "reduccion_inferencias": 78,
+      "reduccion_inferencias_pct": 25.08
+    }
+  },
+  "filas_paso3": [
+    {
+      "trayectoria_id": 1,
+      "placa": "BAC2573",
+      "hora_paso": "",
+      "tiempo_video": "01:25",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.949,
+      "consenso": 0.158,
+      "lecturas": 6,
+      "estado": "pendiente de revision",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v01_f1933_1177_614_359_395.jpg"
+    },
+    {
+      "trayectoria_id": 2,
+      "placa": "MZS872",
+      "hora_paso": "",
+      "tiempo_video": "03:25",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.629,
+      "consenso": 1.0,
+      "lecturas": 1,
+      "estado": "pendiente de revision",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v02_f5108_1509_1006_373_329.jpg"
+    },
+    {
+      "trayectoria_id": 3,
+      "placa": "PAB6741",
+      "hora_paso": "",
+      "tiempo_video": "05:17",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.972,
+      "consenso": 0.656,
+      "lecturas": 30,
+      "estado": "validado",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v03_f7841_984_522_1061_787.jpg"
+    }
+  ],
+  "filas_paso4": [
+    {
+      "trayectoria_id": 1,
+      "placa": "HAC2573",
+      "hora_paso": "",
+      "tiempo_video": "01:25",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.963,
+      "consenso": 0.14,
+      "lecturas": 4,
+      "estado": "pendiente de revision",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v01_f1948_1183_604_447_455.jpg"
+    },
+    {
+      "trayectoria_id": 3,
+      "placa": "",
+      "hora_paso": "",
+      "tiempo_video": "03:25",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "",
+      "sentido": "sale",
+      "confianza": 0.0,
+      "consenso": 0.0,
+      "lecturas": 0,
+      "estado": "sin placa identificable",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v02_f5122_1690_984_489_393.jpg"
+    },
+    {
+      "trayectoria_id": 4,
+      "placa": "PAB6741",
+      "hora_paso": "",
+      "tiempo_video": "05:17",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.97,
+      "consenso": 0.701,
+      "lecturas": 22,
+      "estado": "validado",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v03_f7841_984_522_1061_787.jpg"
+    }
+  ]
+}

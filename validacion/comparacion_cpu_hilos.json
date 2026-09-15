@@ -1,0 +1,130 @@
+{
+  "fecha": "2026-09-15 12:43:40",
+  "hardware": {
+    "sistema": "macOS 14.8.8",
+    "cpu": "Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz (2C/4T)",
+    "ram_bytes": 8589934592
+  },
+  "desde_cuadro": 650,
+  "hasta_cuadro": 950,
+  "cuadros_evaluados": 301,
+  "resumen": {
+    "candidato_actual": {
+      "nombre": "hilos=auto (0) + adelanto",
+      "tiempo_total_medio_s": 36.163,
+      "tiempo_total_std_s": 1.629,
+      "tiempo_inferencia_medio_s": 20.526,
+      "tiempo_inferencia_std_s": 1.621,
+      "tiempo_decodificacion_medio_s": 14.548,
+      "memoria_max_mb": 559.0,
+      "detecciones_promedio": 34.0,
+      "trayectorias_promedio": 1.0
+    },
+    "candidato_hilos_2": {
+      "nombre": "hilos=2 + adelanto",
+      "tiempo_total_medio_s": 37.523,
+      "tiempo_total_std_s": 2.087,
+      "tiempo_inferencia_medio_s": 21.586,
+      "tiempo_inferencia_std_s": 1.173,
+      "tiempo_decodificacion_medio_s": 14.501,
+      "memoria_max_mb": 562.5,
+      "detecciones_promedio": 34.0,
+      "trayectorias_promedio": 1.0
+    },
+    "candidato_secuencial": {
+      "nombre": "hilos=auto (0) + secuencial (sin adelanto)",
+      "tiempo_total_medio_s": 40.159,
+      "tiempo_total_std_s": 2.049,
+      "tiempo_inferencia_medio_s": 21.759,
+      "tiempo_inferencia_std_s": 1.509,
+      "tiempo_decodificacion_medio_s": 26.222,
+      "memoria_max_mb": 559.0,
+      "detecciones_promedio": 34.0,
+      "trayectorias_promedio": 1.0
+    }
+  },
+  "conclusion": "Se conserva la configuración actual (hilos=auto/0 con lectura adelantada), por ser la más rápida en tiempo total (36.16s frente a 37.52s con 2 hilos y 40.16s secuencial), manteniendo exactamente las 34 detecciones del vehículo en todos los casos.",
+  "historial": [
+    {
+      "ronda": 1,
+      "candidato": "candidato_actual",
+      "tiempo_total_s": 34.242,
+      "tiempo_inferencia_s": 18.895,
+      "tiempo_decodificacion_s": 14.581,
+      "memoria_max_mb": 548.6,
+      "detecciones_totales": 34
+    },
+    {
+      "ronda": 1,
+      "candidato": "candidato_hilos_2",
+      "tiempo_total_s": 35.935,
+      "tiempo_inferencia_s": 21.153,
+      "tiempo_decodificacion_s": 13.629,
+      "memoria_max_mb": 554.4,
+      "detecciones_totales": 34
+    },
+    {
+      "ronda": 1,
+      "candidato": "candidato_secuencial",
+      "tiempo_total_s": 40.291,
+      "tiempo_inferencia_s": 22.798,
+      "tiempo_decodificacion_s": 27.020,
+      "memoria_max_mb": 554.4,
+      "detecciones_totales": 34
+    },
+    {
+      "ronda": 2,
+      "candidato": "candidato_hilos_2",
+      "tiempo_total_s": 40.470,
+      "tiempo_inferencia_s": 23.190,
+      "tiempo_decodificacion_s": 15.518,
+      "memoria_max_mb": 559.0,
+      "detecciones_totales": 34
+    },
+    {
+      "ronda": 2,
+      "candidato": "candidato_secuencial",
+      "tiempo_total_s": 42.599,
+      "tiempo_inferencia_s": 22.853,
+      "tiempo_decodificacion_s": 27.679,
+      "memoria_max_mb": 559.0,
+      "detecciones_totales": 34
+    },
+    {
+      "ronda": 2,
+      "candidato": "candidato_actual",
+      "tiempo_total_s": 38.226,
+      "tiempo_inferencia_s": 22.743,
+      "tiempo_decodificacion_s": 14.081,
+      "memoria_max_mb": 559.0,
+      "detecciones_totales": 34
+    },
+    {
+      "ronda": 3,
+      "candidato": "candidato_secuencial",
+      "tiempo_total_s": 37.587,
+      "tiempo_inferencia_s": 19.625,
+      "tiempo_decodificacion_s": 23.968,
+      "memoria_max_mb": 559.0,
+      "detecciones_totales": 34
+    },
+    {
+      "ronda": 3,
+      "candidato": "candidato_actual",
+      "tiempo_total_s": 36.021,
+      "tiempo_inferencia_s": 19.941,
+      "tiempo_decodificacion_s": 14.982,
+      "memoria_max_mb": 559.0,
+      "detecciones_totales": 34
+    },
+    {
+      "ronda": 3,
+      "candidato": "candidato_hilos_2",
+      "tiempo_total_s": 36.163,
+      "tiempo_inferencia_s": 20.414,
+      "tiempo_decodificacion_s": 14.357,
+      "memoria_max_mb": 562.5,
+      "detecciones_totales": 34
+    }
+  ]
+}

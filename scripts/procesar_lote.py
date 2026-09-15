@@ -89,6 +89,8 @@ def parse_args():
                         help="Lecturas coincidentes mínimas para validar una placa.")
     parser.add_argument("--observaciones-minimas", type=int, default=10,
                         help="Detecciones mínimas para considerar que hubo un vehículo.")
+    parser.add_argument("--hilos", type=int, default=None,
+                        help="Número de hilos de cómputo del modelo en CPU (None para automático).")
     parser.add_argument("--solo-salidas", action="store_true",
                         help="Incluir únicamente los vehículos que salen por el lastre.")
     parser.add_argument("--acelerador", choices=("auto", "gpu", "cpu"), default="auto",
@@ -120,14 +122,19 @@ def inicio_de_grabacion(nombre: str):
 
 
 def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedores,
-                   plantillas_reloj=None, medidor=None):
+                   plantillas_reloj=None, medidor=None, detector_vehiculos=None):
     """Detecta, sigue y lee las placas de un video. Devuelve sus filas."""
     metadatos = obtener_metadatos_video(ruta)
     fps = metadatos.fps or 25.0
 
     medidor = medidor or Medidor()
-    detector_vehiculos = DetectorVehiculos(
-        config, modelo="rf-detr-nano-384-coco", proveedores=proveedores)
+    if detector_vehiculos is None:
+        detector_vehiculos = DetectorVehiculos(
+            config,
+            modelo="rf-detr-nano-384-coco",
+            proveedores=proveedores,
+            hilos=getattr(args, "hilos", None),
+        )
     detector = DetectorHibrido(
         DetectorMovimiento(config, factor_escala=args.escala_movimiento),
         detector_vehiculos,
@@ -382,7 +389,7 @@ def main():
             sys.exit(1)
 
     try:
-        lector = LectorPlacas(proveedores=proveedores)
+        lector = LectorPlacas(proveedores=proveedores, hilos=getattr(args, "hilos", None))
     except PlacaError as err:
         print(f"Error al iniciar el lector de placas: {err}", file=sys.stderr)
         sys.exit(1)
@@ -393,8 +400,10 @@ def main():
     # getattr: los dobles de prueba no exponen sesiones y no deben romper.
     modelos = dict(getattr(lector, "sesiones", {}) or {})
     try:
-        modelos["detector de vehiculos"] = DetectorVehiculos(
-            config, modelo="rf-detr-nano-384-coco", proveedores=proveedores).sesion
+        detector_vehiculos = DetectorVehiculos(
+            config, modelo="rf-detr-nano-384-coco", proveedores=proveedores,
+            hilos=getattr(args, "hilos", None))
+        modelos["detector de vehiculos"] = getattr(detector_vehiculos, "sesion", None)
     except VehiculoDeteccionError as err:
         print(f"Error al iniciar el detector de vehiculos: {err}", file=sys.stderr)
         sys.exit(1)
@@ -426,13 +435,17 @@ def main():
         print(f"\n--- {video.name} ---", flush=True)
         try:
             filas = procesar_video(video, config, lector, progreso, args,
-                                   dir_recortes, proveedores, plantillas_reloj, medidor)
+                                   dir_recortes, proveedores, plantillas_reloj, medidor,
+                                   detector_vehiculos=detector_vehiculos)
             cuadros = obtener_metadatos_video(video).total_cuadros
             avance.guardar_video(video.name, filas, cuadros=cuadros)
             print(f"    {len(filas)} vehiculos registrados y guardados", flush=True)
         except (VideoLecturaError, OSError, EvidenciaError) as err:
             fallidos.append((video.name, str(err)))
             print(f"    ERROR: {err}", file=sys.stderr)
+        finally:
+            import gc
+            gc.collect()
         progreso.terminar_video()
         print(progreso.linea(), flush=True)
 

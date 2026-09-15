@@ -144,6 +144,12 @@ def test_lector_rechaza_entrada_invalida():
         lector.leer("no es una imagen")
 
 
+def test_lector_placas_acepta_hilos():
+    """LectorPlacas debe aceptar el parámetro hilos para configurar CPU."""
+    lector = LectorPlacas(alpr=_AlprFalso([]), hilos=2)
+    assert lector is not None
+
+
 # --- Sesiones ONNX expuestas para verificar el acelerador -------------------
 
 class _SesionOnnxFalsa:

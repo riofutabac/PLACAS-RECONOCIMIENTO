@@ -1,0 +1,285 @@
+{
+  "advertencias": [
+    "RSS es el m\u00e1ximo acumulado del proceso, no un pico independiente por variante",
+    "El segmento inicia MOG2 sin el historial anterior; no certifica conteo ni OCR del video completo"
+  ],
+  "detecciones_identicas": true,
+  "fecha": "2026-09-15 13:46:02",
+  "desde_cuadro": 650,
+  "hasta_cuadro": 950,
+  "cuadros_evaluados": 301,
+  "resumen": {
+    "candidato_actual": {
+      "nombre": "hilos=auto (0) + adelanto",
+      "tiempo_total_medio_s": 35.517,
+      "tiempo_total_std_s": 0.493,
+      "tiempo_inferencia_medio_s": 20.168,
+      "tiempo_inferencia_std_s": 0.62,
+      "memoria_max_mb": 552.1,
+      "detecciones_promedio": 34.0,
+      "trayectorias_promedio": 1.0,
+      "corridas": [
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 34.958,
+          "tiempo_inferencia_s": 19.675,
+          "tiempo_movimiento_s": 4.736,
+          "tiempo_decodificacion_s": 14.278,
+          "memoria_max_mb": 534.9,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_actual",
+          "ronda": 1
+        },
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 36.157,
+          "tiempo_inferencia_s": 19.786,
+          "tiempo_movimiento_s": 5.466,
+          "tiempo_decodificacion_s": 14.836,
+          "memoria_max_mb": 552.1,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_actual",
+          "ronda": 2
+        },
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 35.435,
+          "tiempo_inferencia_s": 21.043,
+          "tiempo_movimiento_s": 4.379,
+          "tiempo_decodificacion_s": 13.782,
+          "memoria_max_mb": 552.1,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_actual",
+          "ronda": 3
+        }
+      ]
+    },
+    "candidato_hilos_2": {
+      "nombre": "hilos=2 + adelanto",
+      "tiempo_total_medio_s": 37.118,
+      "tiempo_total_std_s": 1.577,
+      "tiempo_inferencia_medio_s": 21.567,
+      "tiempo_inferencia_std_s": 0.615,
+      "memoria_max_mb": 552.1,
+      "detecciones_promedio": 34.0,
+      "trayectorias_promedio": 1.0,
+      "corridas": [
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 35.665,
+          "tiempo_inferencia_s": 21.48,
+          "tiempo_movimiento_s": 4.796,
+          "tiempo_decodificacion_s": 13.191,
+          "memoria_max_mb": 543.8,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_hilos_2",
+          "ronda": 1
+        },
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 39.309,
+          "tiempo_inferencia_s": 20.861,
+          "tiempo_movimiento_s": 4.85,
+          "tiempo_decodificacion_s": 17.894,
+          "memoria_max_mb": 548.7,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_hilos_2",
+          "ronda": 2
+        },
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 36.379,
+          "tiempo_inferencia_s": 22.359,
+          "tiempo_movimiento_s": 4.356,
+          "tiempo_decodificacion_s": 13.38,
+          "memoria_max_mb": 552.1,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_hilos_2",
+          "ronda": 3
+        }
+      ]
+    },
+    "candidato_secuencial": {
+      "nombre": "hilos=auto (0) + secuencial (sin adelanto)",
+      "tiempo_total_medio_s": 41.84,
+      "tiempo_total_std_s": 5.758,
+      "tiempo_inferencia_medio_s": 22.001,
+      "tiempo_inferencia_std_s": 3.122,
+      "memoria_max_mb": 552.1,
+      "detecciones_promedio": 34.0,
+      "trayectorias_promedio": 1.0,
+      "corridas": [
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 49.961,
+          "tiempo_inferencia_s": 26.414,
+          "tiempo_movimiento_s": 7.579,
+          "tiempo_decodificacion_s": 15.324,
+          "memoria_max_mb": 543.8,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_secuencial",
+          "ronda": 1
+        },
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 38.31,
+          "tiempo_inferencia_s": 19.911,
+          "tiempo_movimiento_s": 3.306,
+          "tiempo_decodificacion_s": 14.59,
+          "memoria_max_mb": 548.7,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_secuencial",
+          "ronda": 2
+        },
+        {
+          "cuadros_vistos": 301,
+          "tiempo_total_s": 37.25,
+          "tiempo_inferencia_s": 19.678,
+          "tiempo_movimiento_s": 3.751,
+          "tiempo_decodificacion_s": 13.297,
+          "memoria_max_mb": 552.1,
+          "detecciones_totales": 34,
+          "total_trayectorias": 1,
+          "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+          "candidato": "candidato_secuencial",
+          "ronda": 3
+        }
+      ]
+    }
+  },
+  "historial": [
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 34.958,
+      "tiempo_inferencia_s": 19.675,
+      "tiempo_movimiento_s": 4.736,
+      "tiempo_decodificacion_s": 14.278,
+      "memoria_max_mb": 534.9,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_actual",
+      "ronda": 1
+    },
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 35.665,
+      "tiempo_inferencia_s": 21.48,
+      "tiempo_movimiento_s": 4.796,
+      "tiempo_decodificacion_s": 13.191,
+      "memoria_max_mb": 543.8,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_hilos_2",
+      "ronda": 1
+    },
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 49.961,
+      "tiempo_inferencia_s": 26.414,
+      "tiempo_movimiento_s": 7.579,
+      "tiempo_decodificacion_s": 15.324,
+      "memoria_max_mb": 543.8,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_secuencial",
+      "ronda": 1
+    },
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 39.309,
+      "tiempo_inferencia_s": 20.861,
+      "tiempo_movimiento_s": 4.85,
+      "tiempo_decodificacion_s": 17.894,
+      "memoria_max_mb": 548.7,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_hilos_2",
+      "ronda": 2
+    },
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 38.31,
+      "tiempo_inferencia_s": 19.911,
+      "tiempo_movimiento_s": 3.306,
+      "tiempo_decodificacion_s": 14.59,
+      "memoria_max_mb": 548.7,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_secuencial",
+      "ronda": 2
+    },
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 36.157,
+      "tiempo_inferencia_s": 19.786,
+      "tiempo_movimiento_s": 5.466,
+      "tiempo_decodificacion_s": 14.836,
+      "memoria_max_mb": 552.1,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_actual",
+      "ronda": 2
+    },
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 37.25,
+      "tiempo_inferencia_s": 19.678,
+      "tiempo_movimiento_s": 3.751,
+      "tiempo_decodificacion_s": 13.297,
+      "memoria_max_mb": 552.1,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_secuencial",
+      "ronda": 3
+    },
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 35.435,
+      "tiempo_inferencia_s": 21.043,
+      "tiempo_movimiento_s": 4.379,
+      "tiempo_decodificacion_s": 13.782,
+      "memoria_max_mb": 552.1,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_actual",
+      "ronda": 3
+    },
+    {
+      "cuadros_vistos": 301,
+      "tiempo_total_s": 36.379,
+      "tiempo_inferencia_s": 22.359,
+      "tiempo_movimiento_s": 4.356,
+      "tiempo_decodificacion_s": 13.38,
+      "memoria_max_mb": 552.1,
+      "detecciones_totales": 34,
+      "total_trayectorias": 1,
+      "firma_detecciones": "4af78ad012ffcbaaf4d60b09b4722be3f7d3c66b80e9020728b40493fa806899",
+      "candidato": "candidato_hilos_2",
+      "ronda": 3
+    }
+  ]
+}

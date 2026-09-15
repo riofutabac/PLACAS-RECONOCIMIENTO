@@ -95,6 +95,7 @@ class LectorPlacas:
         ocr_modelo: str = "global-plates-mobile-vit-v2-model",
         proveedores=None,
         alpr=None,
+        hilos: Optional[int] = None,
     ) -> None:
         """Prepara el lector. `alpr` permite inyectar un doble en las pruebas."""
         if alpr is not None:
@@ -106,15 +107,20 @@ class LectorPlacas:
             raise PlacaError(
                 "fast_alpr no está instalado; se requiere para leer placas"
             ) from exc
+        from lastre.aceleracion import configurar_opciones_sesion
+        sess_options = configurar_opciones_sesion(hilos)
+        kwargs = {
+            "detector_model": detector_modelo,
+            "ocr_model": ocr_modelo,
+        }
+        if sess_options is not None:
+            kwargs["detector_sess_options"] = sess_options
+            kwargs["ocr_sess_options"] = sess_options
         if proveedores:
-            self._alpr = ALPR(
-                detector_model=detector_modelo,
-                ocr_model=ocr_modelo,
-                detector_providers=list(proveedores),
-                ocr_providers=list(proveedores),
-            )
-        else:
-            self._alpr = ALPR(detector_model=detector_modelo, ocr_model=ocr_modelo)
+            kwargs["detector_providers"] = list(proveedores)
+            kwargs["ocr_providers"] = list(proveedores)
+
+        self._alpr = ALPR(**kwargs)
 
     @property
     def sesiones(self) -> dict:

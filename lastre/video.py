@@ -36,6 +36,26 @@ class MetadatosVideo:
     duracion_segundos: float
 
 
+def _abrir_video_capture(ruta: Path) -> cv2.VideoCapture:
+    """Abre un descriptor VideoCapture asegurando ruta absoluta y reintentos de backend."""
+    ruta_str = str(ruta.resolve())
+    cap = cv2.VideoCapture(ruta_str)
+    if cap.isOpened():
+        return cap
+    cap.release()
+
+    # Intento de respaldo con backends específicos si el predeterminado no pudo abrir
+    for api_pref in (cv2.CAP_AVFOUNDATION, cv2.CAP_FFMPEG, cv2.CAP_GSTREAMER):
+        try:
+            cap = cv2.VideoCapture(ruta_str, api_pref)
+            if cap.isOpened():
+                return cap
+            cap.release()
+        except cv2.error:
+            continue
+    return cap
+
+
 def obtener_metadatos_video(ruta: Union[str, Path]) -> MetadatosVideo:
     """Extrae las propiedades técnicas y dimensiones de un archivo de video.
 
@@ -45,7 +65,7 @@ def obtener_metadatos_video(ruta: Union[str, Path]) -> MetadatosVideo:
     if not ruta_path.is_file():
         raise VideoLecturaError(f"Archivo de video no encontrado: '{ruta}'")
 
-    cap = cv2.VideoCapture(str(ruta_path))
+    cap = _abrir_video_capture(ruta_path)
     if not cap.isOpened():
         raise VideoLecturaError(f"No fue posible abrir el video con OpenCV: '{ruta}'")
 
@@ -100,7 +120,7 @@ def iterar_cuadros(
     if not ruta_path.is_file():
         raise VideoLecturaError(f"Archivo de video no encontrado: '{ruta}'")
 
-    cap = cv2.VideoCapture(str(ruta_path))
+    cap = _abrir_video_capture(ruta_path)
     if not cap.isOpened():
         raise VideoLecturaError(f"No fue posible abrir el video: '{ruta}'")
 

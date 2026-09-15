@@ -99,10 +99,7 @@ def test_video_real_metadatos_y_lectura():
     if not ruta_real.is_file():
         pytest.skip("Archivo de muestra real no disponible en el entorno")
 
-    try:
-        meta = obtener_metadatos_video(ruta_real)
-    except VideoLecturaError as error:
-        pytest.skip(f"Archivo de muestra no legible por OpenCV: {error}")
+    meta = obtener_metadatos_video(ruta_real)
     assert meta.ancho == 2960
     assert meta.alto == 1664
     assert meta.total_cuadros > 8000

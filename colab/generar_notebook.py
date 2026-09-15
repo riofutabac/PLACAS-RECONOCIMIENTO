@@ -108,6 +108,7 @@ CARPETA_INFORMES = '/content/drive/MyDrive/informe_lastre' #@param {type:"string
 # Para probar un archivo concreto, pega aquí su nombre COMPLETO, tal como se
 # imprime abajo. Déjalo vacío para procesar todos los videos de la carpeta.
 VIDEO_PRUEBA = '' #@param {type:"string"}
+ACELERADOR = 'gpu' #@param ["gpu", "cpu"]
 
 spec = spec_from_file_location('flujo_colab', REPO / 'colab/ejecucion.py')
 flujo = module_from_spec(spec)
@@ -127,34 +128,39 @@ if VIDEO_PRUEBA:
         raise ValueError('VIDEO_PRUEBA debe coincidir exactamente con uno de los nombres listados.')
 else:
     VIDEOS = todos_los_videos
-SALIDA = flujo.preparar_salida(CARPETA_INFORMES, VIDEOS, VERSION, 'gpu')
+SALIDA = flujo.preparar_salida(CARPETA_INFORMES, VIDEOS, VERSION, ACELERADOR)
 print('Videos seleccionados:', len(VIDEOS), 'de', len(todos_los_videos))
 print('Ya terminados en esta ejecución:', len(flujo.leer_avance(SALIDA)))
+print('Acelerador seleccionado:', ACELERADOR)
 print('Resultados:', SALIDA)
 for indice, video in enumerate(todos_los_videos):
     print(f' [{indice:02d}] {video.name}')
 ''')
-    md('## 3. Comprobar los modelos y la GPU\nEsta comprobación carga los modelos reales. Si alguno queda en CPU, se detiene antes del lote. Espera a ver **GPU LISTA**.')
-    code('''GPU_LISTA = False
-comprobacion = """
+    md('## 3. Comprobar los modelos y el acelerador\nEsta comprobación carga los modelos reales. Si se pidió GPU y alguno queda en CPU, se detiene antes del lote. Espera a ver **COMPROBACIÓN LISTA**.')
+    code('''COMPROBACION_LISTA = False
+comprobacion = f"""
 import onnxruntime as ort
-ort.preload_dlls(directory='')
 from lastre.config import cargar_configuracion
 from lastre.placa import LectorPlacas
 from lastre.vehiculos import DetectorVehiculos
-from lastre.aceleracion import verificar_sesiones
-proveedores = ('CUDAExecutionProvider', 'CPUExecutionProvider')
+from lastre.aceleracion import verificar_sesiones, preparar_bibliotecas_gpu
+acelerador = '{ACELERADOR}'
+if acelerador == 'gpu':
+    preparar_bibliotecas_gpu()
+    proveedores = ('CUDAExecutionProvider', 'CPUExecutionProvider')
+else:
+    proveedores = ('CPUExecutionProvider',)
 lector = LectorPlacas(proveedores=proveedores)
 modelos = dict(lector.sesiones)
 modelos['vehiculos'] = DetectorVehiculos(cargar_configuracion('config/zona.json'), modelo='rf-detr-nano-384-coco', proveedores=proveedores).sesion
-ok, informes = verificar_sesiones(modelos, 'gpu')
+ok, informes = verificar_sesiones(modelos, acelerador)
 print('ONNX Runtime:', ort.__version__)
 for informe in informes: print(informe)
-if not ok: raise RuntimeError('Algún modelo no usa GPU. Revisa el error de CUDA anterior; no inicies el lote.')
+if not ok: raise RuntimeError('Algún modelo no coincide con el acelerador solicitado. Revisa el log.')
 """
-flujo.ejecutar([str(PYTHON), '-u', '-c', comprobacion], REPO, SALIDA / 'diagnostico_gpu.log')
-GPU_LISTA = True
-print('GPU LISTA. Sigue al paso 4.')
+flujo.ejecutar([str(PYTHON), '-u', '-c', comprobacion], REPO, SALIDA / 'diagnostico_acelerador.log')
+COMPROBACION_LISTA = True
+print('COMPROBACIÓN LISTA. Sigue al paso 4.')
 ''')
     md('## 4. Ver la zona de la cámara\nEl verde debe cubrir el lastre y excluir la carretera principal. Si la cámara cambió de posición, no continúes: hay que recalibrar la zona. Esta imagen queda guardada en tu carpeta de resultados.')
     code('''from IPython.display import Image, display
@@ -179,13 +185,13 @@ Se repite únicamente el video que no alcanzó a terminar. No ejecutes dos sesio
     code('''MODO = 'prueba' #@param ["prueba", "lote"]
 ZONA_CORRECTA = False #@param {type:"boolean"}
 
-if not globals().get('GPU_LISTA', False):
-    raise RuntimeError('Ejecuta primero el paso 3: comprobar GPU.')
+if not globals().get('COMPROBACION_LISTA', False):
+    raise RuntimeError('Ejecuta primero el paso 3: comprobar modelos y acelerador.')
 if not ZONA_CORRECTA:
     raise RuntimeError('Revisa la imagen del paso 4 y marca ZONA_CORRECTA = True.')
 if MODO not in ('prueba', 'lote'):
     raise ValueError("MODO debe ser 'prueba' o 'lote'.")
-flujo.procesar(VIDEOS, SALIDA, PYTHON, REPO, limite=1 if MODO == 'prueba' else None)
+flujo.procesar(VIDEOS, SALIDA, PYTHON, REPO, limite=1 if MODO == 'prueba' else None, acelerador=globals().get('ACELERADOR', 'gpu'))
 ''')
     md('## 6. Ver y descargar el Excel\nEl Excel incluye los resultados acumulados. Las placas pendientes necesitan revisión; una confianza alta por sí sola no garantiza que la placa sea correcta.')
     code('''from IPython.display import HTML, display

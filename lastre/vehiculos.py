@@ -8,7 +8,7 @@ una sombra nunca produce una detección.
 
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -75,6 +75,7 @@ class DetectorVehiculos:
         criterio_zona: str = "base",
         proveedores=None,
         detector=None,
+        hilos: Optional[int] = None,
     ) -> None:
         """Prepara el detector.
 
@@ -83,6 +84,7 @@ class DetectorVehiculos:
           de la carretera principal puede invadir la zona con su carrocería,
           pero nunca con sus ruedas.
         - `detector` permite inyectar un doble en las pruebas.
+        - `hilos` configura el número de hilos de cómputo del modelo en CPU.
         """
         if not 0.0 <= confianza_minima <= 1.0:
             raise VehiculoDeteccionError(
@@ -102,10 +104,15 @@ class DetectorVehiculos:
                 raise VehiculoDeteccionError(
                     "open_image_models no está instalado; se requiere para detectar vehículos"
                 ) from exc
+            from lastre.aceleracion import configurar_opciones_sesion
+            sess_options = configurar_opciones_sesion(hilos)
+            kwargs = {}
+            if sess_options is not None:
+                kwargs["sess_options"] = sess_options
             if proveedores:
-                self._detector = create_detector(modelo, providers=list(proveedores))
-            else:
-                self._detector = create_detector(modelo)
+                kwargs["providers"] = list(proveedores)
+
+            self._detector = create_detector(modelo, **kwargs)
 
     @property
     def sesion(self):

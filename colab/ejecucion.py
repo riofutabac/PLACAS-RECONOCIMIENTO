@@ -77,7 +77,7 @@ def ejecutar(comando, repo, log):
         raise RuntimeError(f'El proceso terminó con código {codigo}. Revisa {log}.')
 
 
-def procesar(videos, salida, python, repo, limite=None, local='/content', runner=ejecutar):
+def procesar(videos, salida, python, repo, limite=None, local='/content', runner=ejecutar, acelerador='gpu', paso=3):
     """Prueba el primer video o continúa todo; verifica el checkpoint de cada uno."""
     seleccion = videos if limite is None else videos[:limite]
     for indice, video in enumerate(seleccion, 1):
@@ -94,8 +94,8 @@ def procesar(videos, salida, python, repo, limite=None, local='/content', runner
                 raise OSError(f'La copia quedó incompleta: {video.name}')
             comando = [str(python), '-u', '-c', LANZADOR,
                        str(Path(repo) / 'scripts/procesar_lote.py'), temporal,
-                       '--out-dir', str(salida), '--acelerador', 'gpu',
-                       '--paso', '3', '--paso-movimiento', '1',
+                       '--out-dir', str(salida), '--acelerador', acelerador,
+                       '--paso', str(paso), '--paso-movimiento', '1',
                        '--escala-movimiento', '0.25', '--observaciones-minimas', '10']
             runner(comando, repo, Path(salida) / 'procesamiento.log')
             # El script puede informar fallos por video y aun así salir con 0.
@@ -111,6 +111,6 @@ def procesar(videos, salida, python, repo, limite=None, local='/content', runner
                     (Path(temporal) / video.name).symlink_to(video.resolve())
             comando = [str(python), '-u', '-c', LANZADOR,
                        str(Path(repo) / 'scripts/procesar_lote.py'), temporal,
-                       '--out-dir', str(salida), '--solo-informe', '--acelerador', 'gpu']
+                       '--out-dir', str(salida), '--solo-informe', '--acelerador', acelerador]
             runner(comando, repo, Path(salida) / 'procesamiento.log')
     print(f'Terminados: {len(leer_avance(salida))}/{len(videos)}. Resultados: {salida}', flush=True)

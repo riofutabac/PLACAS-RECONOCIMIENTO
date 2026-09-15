@@ -375,3 +375,9 @@ def test_el_filtro_se_mide_aunque_no_haya_movimiento():
 
     assert medidor.etapas["filtro de movimiento"].llamadas == 1
     assert "modelo de vehiculos" not in medidor.etapas
+
+
+def test_detector_vehiculos_acepta_hilos(config_zona):
+    """DetectorVehiculos debe aceptar el parámetro hilos para configurar CPU."""
+    detector = DetectorVehiculos(config_zona, detector=_DetectorFalso([]), hilos=2)
+    assert detector is not None
