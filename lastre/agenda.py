@@ -87,3 +87,16 @@ def ultimo_cuadro_necesario(agenda: Agenda) -> int:
     evidencia aparece después.
     """
     return max(agenda) if agenda else 0
+
+
+def tareas_por_vehiculo(agenda: Agenda) -> Dict[int, Tuple[Tarea, ...]]:
+    """Reagrupa la agenda por vehículo, en orden de cuadro.
+
+    El lote recorre vehículos y el script independiente recorre cuadros, pero
+    ambos deben partir de la misma selección de observaciones.
+    """
+    por_vehiculo: Dict[int, list] = {}
+    for cuadro in sorted(agenda):
+        for tarea in agenda[cuadro]:
+            por_vehiculo.setdefault(tarea.indice, []).append(tarea)
+    return {indice: tuple(tareas) for indice, tareas in por_vehiculo.items()}

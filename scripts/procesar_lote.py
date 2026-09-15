@@ -24,6 +24,7 @@ from lastre.aceleracion import AceleracionError, describir, elegir_proveedores
 from lastre.checkpoint import Checkpoint
 from lastre.config import cargar_configuracion, ConfiguracionError
 from lastre.deduplicacion import deduplicar_por_placa
+from lastre.agenda import construir_agenda, tareas_por_vehiculo
 from lastre.deteccion import DetectorMovimiento
 from lastre.evidencia import AlmacenRecortes, EvidenciaError
 from lastre.excel import escribir_listado
@@ -184,20 +185,35 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
 
     crudos = []
 
+    # La misma seleccion de observaciones que usa el script independiente: solo
+    # las propias de cada vehiculo, candidatas a OCR por area y una evidencia.
+    agenda = tareas_por_vehiculo(construir_agenda(vehiculos, AREA_MINIMA_PARA_LEER))
+
     for indice, vehiculo in enumerate(vehiculos):
         if args.solo_salidas and vehiculo.sentido != "sale":
             continue
 
         lecturas = []
-        # Las observaciones propias del vehiculo, no las que caigan dentro de su
-        # intervalo: otro vehiculo puede entrar y salir mientras este sigue en
-        # la zona, y asociarlo por contencion le prestaba su placa.
-        for posicion in vehiculo.posiciones:
-            if posicion.area < AREA_MINIMA_PARA_LEER:
-                continue
-            recorte = almacen.obtener(posicion.cuadro, posicion.caja)
+        evidencia = ""
+
+        for tarea in agenda.get(indice, ()):
+            recorte = almacen.obtener(tarea.cuadro, tarea.caja)
             if recorte is None:
                 continue
+
+            nombre = f"{ruta.stem}_v{indice + 1:02d}_f{tarea.cuadro}.jpg"
+            ruta_recorte = f"recortes/{nombre}"
+
+            # La evidencia se guarda sin esperar al OCR: un vehiculo sin placa
+            # legible sigue necesitando su foto para verificarlo a mano.
+            if tarea.es_evidencia:
+                cv2.imwrite(str(dir_recortes / nombre), recorte,
+                            [cv2.IMWRITE_JPEG_QUALITY, 95])
+                evidencia = ruta_recorte
+
+            if not tarea.es_candidato:
+                continue
+
             try:
                 with medidor.fase("leer placa"):
                     # El recorte ya trae el margen del lector: aplicarlo otra
@@ -205,15 +221,15 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
                     encontradas = lector.leer(recorte)
             except PlacaError:
                 continue
+
             for encontrada in encontradas:
-                nombre = f"{ruta.stem}_v{indice + 1:02d}_f{posicion.cuadro}.jpg"
                 cv2.imwrite(str(dir_recortes / nombre), recorte,
                             [cv2.IMWRITE_JPEG_QUALITY, 95])
                 lecturas.append(Lectura(
-                    cuadro=posicion.cuadro,
+                    cuadro=tarea.cuadro,
                     texto=encontrada.texto,
                     confianza=encontrada.confianza,
-                    imagen_recorte=f"recortes/{nombre}",
+                    imagen_recorte=ruta_recorte,
                     confianza_minima=encontrada.confianza_minima,
                 ))
 
@@ -225,7 +241,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
             "confianza": resultado.confianza,
             "consenso": resultado.dominancia,
             "estado": resultado.estado,
-            "imagen": resultado.imagen_recorte,
+            "imagen": resultado.imagen_recorte or evidencia,
             "lecturas": resultado.lecturas_coincidentes,
         })
 

@@ -2,7 +2,12 @@
 
 import pytest
 
-from lastre.agenda import AgendaError, construir_agenda, ultimo_cuadro_necesario
+from lastre.agenda import (
+    AgendaError,
+    construir_agenda,
+    tareas_por_vehiculo,
+    ultimo_cuadro_necesario,
+)
 from lastre.registro import registrar_vehiculos
 from lastre.trayectoria import Posicion, Trayectoria
 
@@ -146,3 +151,28 @@ def test_cada_vehiculo_tiene_exactamente_una_evidencia():
 
     evidencias = [t for tareas in agenda.values() for t in tareas if t.es_evidencia]
     assert sorted(t.indice for t in evidencias) == [0, 1]
+
+
+def test_las_tareas_se_pueden_agrupar_por_vehiculo():
+    """El lote recorre vehículos y el script independiente recorre cuadros.
+
+    Ambos deben partir de la misma agenda para seleccionar exactamente las
+    mismas observaciones con los mismos parámetros.
+    """
+    grandes = [90000] * 20
+    uno = _trayectoria(1, list(range(1300, 1300 + 20 * 60, 60)), areas=grandes)
+    otro = _trayectoria(2, list(range(400, 400 + 20 * 60, 60)), areas=[1000] * 20)
+    vehiculos = _vehiculos(uno, otro)
+
+    agenda = construir_agenda(vehiculos, AREA_MINIMA)
+    por_vehiculo = tareas_por_vehiculo(agenda)
+
+    assert set(por_vehiculo) == {0, 1}
+    assert len(por_vehiculo[0]) == 20
+    assert len(por_vehiculo[1]) == 1
+    assert [t.cuadro for t in por_vehiculo[0]] == sorted(t.cuadro for t in por_vehiculo[0])
+
+
+def test_agrupar_una_agenda_vacia_no_inventa_vehiculos():
+    """Sin observaciones no hay tareas que agrupar."""
+    assert tareas_por_vehiculo({}) == {}
