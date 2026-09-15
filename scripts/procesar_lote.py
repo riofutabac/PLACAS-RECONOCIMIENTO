@@ -19,13 +19,13 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cv2
-import numpy as np
 
 from lastre.aceleracion import AceleracionError, describir, elegir_proveedores
 from lastre.checkpoint import Checkpoint
 from lastre.config import cargar_configuracion, ConfiguracionError
 from lastre.deduplicacion import deduplicar_por_placa
 from lastre.deteccion import DetectorMovimiento
+from lastre.evidencia import AlmacenRecortes, EvidenciaError
 from lastre.excel import escribir_listado
 from lastre.lectura import ESTADO_VALIDADO, Lectura, consolidar_lecturas
 from lastre.medicion import Medidor
@@ -130,7 +130,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     seguidor = SeguidorTrayectorias(config)
 
     trayectorias = []
-    cuadros_guardados = {}
+    almacen = AlmacenRecortes()
     ultimo_informe = time.time()
     marca_referencia = None
 
@@ -158,11 +158,16 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
         with medidor.fase("seguimiento"):
             trayectorias.extend(seguidor.actualizar(numero, detecciones))
 
-        if detecciones or seguidor.hay_pistas_activas:
-            with medidor.fase("guardar cuadro"):
-                ok, codificado = cv2.imencode(".jpg", cuadro, [cv2.IMWRITE_JPEG_QUALITY, 92])
-                if ok:
-                    cuadros_guardados[numero] = codificado.tobytes()
+        # Solo se conserva el recorte de cada vehiculo detectado. Comprimir el
+        # cuadro completo costaba ~142 ms y acumulaba ~3.3 GB por video para
+        # que despues el lector mirara unicamente la caja del vehiculo.
+        if detecciones:
+            with medidor.fase("guardar recortes"):
+                for deteccion in detecciones:
+                    try:
+                        almacen.guardar(numero, deteccion.caja, cuadro)
+                    except EvidenciaError:
+                        continue
 
         progreso.avanzar(1)
         if time.time() - ultimo_informe >= 5:
@@ -190,20 +195,19 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
         for posicion in vehiculo.posiciones:
             if posicion.area < AREA_MINIMA_PARA_LEER:
                 continue
-            codificado = cuadros_guardados.get(posicion.cuadro)
-            if codificado is None:
+            recorte = almacen.obtener(posicion.cuadro, posicion.caja)
+            if recorte is None:
                 continue
-            imagen = cv2.imdecode(np.frombuffer(codificado, np.uint8), cv2.IMREAD_COLOR)
             try:
                 with medidor.fase("leer placa"):
-                    encontradas = lector.leer_vehiculo(imagen, posicion.caja)
+                    # El recorte ya trae el margen del lector: aplicarlo otra
+                    # vez agrandaria la ventana hasta el vehiculo vecino.
+                    encontradas = lector.leer(recorte)
             except PlacaError:
                 continue
             for encontrada in encontradas:
                 nombre = f"{ruta.stem}_v{indice + 1:02d}_f{posicion.cuadro}.jpg"
-                x, y, ancho, alto = posicion.caja
-                cv2.imwrite(str(dir_recortes / nombre),
-                            imagen[y:y + alto, x:x + ancho],
+                cv2.imwrite(str(dir_recortes / nombre), recorte,
                             [cv2.IMWRITE_JPEG_QUALITY, 95])
                 lecturas.append(Lectura(
                     cuadro=posicion.cuadro,

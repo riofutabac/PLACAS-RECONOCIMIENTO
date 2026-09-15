@@ -28,12 +28,12 @@ def test_la_clave_distingue_dos_vehiculos_en_el_mismo_cuadro():
     izquierda = _posicion(cuadro=10, caja=(100, 80, 60, 40))
     derecha = _posicion(cuadro=10, caja=(300, 80, 60, 40))
 
-    assert clave_de(izquierda) != clave_de(derecha)
+    assert clave_de(izquierda.cuadro, izquierda.caja) != clave_de(derecha.cuadro, derecha.caja)
 
 
 def test_la_clave_es_estable_para_la_misma_observacion():
     """Guardar y consultar deben coincidir sin depender del orden de llamada."""
-    assert clave_de(_posicion()) == clave_de(_posicion())
+    assert clave_de(_posicion().cuadro, _posicion().caja) == clave_de(_posicion().cuadro, _posicion().caja)
 
 
 def test_devuelve_el_recorte_con_el_margen_ya_aplicado():
@@ -46,8 +46,8 @@ def test_devuelve_el_recorte_con_el_margen_ya_aplicado():
     posicion = _posicion(caja=(100, 80, 60, 40))
     almacen = AlmacenRecortes()
 
-    almacen.guardar(posicion, imagen)
-    recorte = almacen.obtener(posicion)
+    almacen.guardar(posicion.cuadro, posicion.caja, imagen)
+    recorte = almacen.obtener(posicion.cuadro, posicion.caja)
 
     # margen del 10 %: 6 px en x y 4 px en y a cada lado
     assert recorte.shape[:2] == (40 + 4 * 2, 60 + 6 * 2)
@@ -55,7 +55,7 @@ def test_devuelve_el_recorte_con_el_margen_ya_aplicado():
 
 def test_una_observacion_no_guardada_no_devuelve_recorte():
     """Consultar algo ausente no puede inventar una imagen."""
-    assert AlmacenRecortes().obtener(_posicion()) is None
+    assert AlmacenRecortes().obtener(_posicion().cuadro, _posicion().caja) is None
 
 
 def test_recorta_sin_desbordar_en_el_borde_del_cuadro():
@@ -64,8 +64,8 @@ def test_recorta_sin_desbordar_en_el_borde_del_cuadro():
     posicion = _posicion(caja=(370, 280, 30, 20))
     almacen = AlmacenRecortes()
 
-    almacen.guardar(posicion, imagen)
-    recorte = almacen.obtener(posicion)
+    almacen.guardar(posicion.cuadro, posicion.caja, imagen)
+    recorte = almacen.obtener(posicion.cuadro, posicion.caja)
 
     alto, ancho = recorte.shape[:2]
     assert 0 < ancho <= 400 and 0 < alto <= 300
@@ -77,9 +77,9 @@ def test_guardar_la_misma_observacion_dos_veces_no_duplica_almacenamiento():
     posicion = _posicion()
     almacen = AlmacenRecortes()
 
-    almacen.guardar(posicion, imagen)
+    almacen.guardar(posicion.cuadro, posicion.caja, imagen)
     bytes_uno = almacen.bytes_totales
-    almacen.guardar(posicion, imagen)
+    almacen.guardar(posicion.cuadro, posicion.caja, imagen)
 
     assert len(almacen) == 1
     assert almacen.bytes_totales == bytes_uno
@@ -91,7 +91,7 @@ def test_almacena_mucho_menos_que_el_cuadro_completo():
     posicion = _posicion(caja=(1000, 700, 300, 200))
     almacen = AlmacenRecortes()
 
-    almacen.guardar(posicion, imagen)
+    almacen.guardar(posicion.cuadro, posicion.caja, imagen)
 
     assert almacen.bytes_totales < imagen.nbytes // 20
 
@@ -101,7 +101,7 @@ def test_una_caja_fuera_del_cuadro_se_rechaza_explicitamente():
     almacen = AlmacenRecortes()
 
     with pytest.raises(EvidenciaError):
-        almacen.guardar(_posicion(caja=(5000, 5000, 60, 40)), _cuadro())
+        almacen.guardar(10, (5000, 5000, 60, 40), _cuadro())
 
 
 def test_la_calidad_invalida_se_rechaza_al_construir():
