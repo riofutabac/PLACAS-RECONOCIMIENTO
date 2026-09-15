@@ -7,7 +7,7 @@ una sombra nunca produce una detección.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Sequence, Tuple
+from typing import Tuple
 
 import numpy as np
 
