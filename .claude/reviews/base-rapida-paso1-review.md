@@ -8,7 +8,7 @@
 El paso 1 del plan corrige la contaminación de identidad en ambas entradas y
 reemplaza el almacenamiento de cuadros completos por recortes. Sin hallazgos
 CRÍTICOS ni ALTOS. Los tres hallazgos MEDIOS detectados durante la revisión
-se corrigieron en `f0e2a1c`; el resto son preexistentes y quedan fuera del
+se corrigieron en `6ab7075`; el resto son preexistentes y quedan fuera del
 alcance de este paso.
 
 ## Hallazgos
