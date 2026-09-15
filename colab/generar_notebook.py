@@ -28,6 +28,18 @@ Si aparece un error rojo, detente en esa celda; el mensaje indica qué revisar.
     code('''import subprocess, sys
 from pathlib import Path
 
+def correr(cmd, **kw):
+    \'\'\'Ejecuta y, si falla, muestra el error real del comando.
+
+    subprocess con check=True solo deja un CalledProcessError sin motivo.
+    \'\'\'
+    r = subprocess.run(cmd, capture_output=True, text=True, **kw)
+    if r.returncode:
+        print(r.stdout[-3000:])
+        print(r.stderr[-3000:])
+        raise RuntimeError('Fallo: ' + ' '.join(str(c) for c in cmd))
+    return r
+
 RAMA = 'codex/base-rapida-paso1' #@param {type:"string"}
 URL = 'https://github.com/riofutabac/PLACAS-RECONOCIMIENTO.git'
 
@@ -42,21 +54,23 @@ except (FileNotFoundError, subprocess.CalledProcessError) as exc:
 
 REPO = Path('/content/lastre')
 if (REPO / '.git').exists():
-    subprocess.run(['git', '-C', str(REPO), 'fetch', '--quiet', 'origin', RAMA], check=True)
-    subprocess.run(['git', '-C', str(REPO), 'reset', '--hard', '--quiet', 'FETCH_HEAD'], check=True)
+    correr(['git', '-C', str(REPO), 'fetch', '--quiet', 'origin', RAMA])
+    correr(['git', '-C', str(REPO), 'reset', '--hard', '--quiet', 'FETCH_HEAD'])
 else:
-    subprocess.run(['git', 'clone', '--quiet', '--branch', RAMA, URL, str(REPO)], check=True)
+    correr(['git', 'clone', '--quiet', '--branch', RAMA, URL, str(REPO)])
 
 # El commit identifica el codigo medido: los resultados de versiones distintas
 # no se mezclan en la misma carpeta de Drive.
-VERSION = subprocess.run(['git', '-C', str(REPO), 'rev-parse', 'HEAD'],
-                         check=True, capture_output=True, text=True).stdout.strip()
+VERSION = correr(['git', '-C', str(REPO), 'rev-parse', 'HEAD']).stdout.strip()
 
 # Entorno aparte: evita que las versiones que Colab trae preinstaladas choquen
 # con las del proyecto, y asi no hace falta reiniciar el entorno.
 PYTHON = REPO / '.venv/bin/python'
 if not PYTHON.exists():
-    subprocess.run([sys.executable, '-m', 'venv', str(REPO / '.venv')], check=True)
+    # El Python de Colab no trae ensurepip, asi que `python -m venv` falla con
+    # exit 1. virtualenv crea el entorno sin depender de el.
+    correr([sys.executable, '-m', 'pip', 'install', '-q', 'virtualenv'])
+    correr([sys.executable, '-m', 'virtualenv', '-q', str(REPO / '.venv')])
 
 marca = REPO / '.instalado'
 if marca.exists() and marca.read_text() != VERSION:
@@ -68,10 +82,10 @@ if not marca.exists():
         if not linea or linea.startswith('#') or linea.startswith(('onnxruntime', 'pytest')):
             continue
         requisitos.append(linea.replace('opencv-python==', 'opencv-python-headless=='))
-    subprocess.run([str(PYTHON), '-m', 'pip', 'install', *requisitos], check=True)
-    subprocess.run([str(PYTHON), '-m', 'pip', 'uninstall', '-y', 'onnxruntime', 'onnxruntime-gpu'], check=True)
-    subprocess.run([str(PYTHON), '-m', 'pip', 'install', 'onnxruntime-gpu[cuda,cudnn]==1.22.0'], check=True)
-    subprocess.run([str(PYTHON), '-c', 'import cv2, numpy, fast_alpr, open_image_models, onnxruntime'], check=True)
+    correr([str(PYTHON), '-m', 'pip', 'install', *requisitos])
+    correr([str(PYTHON), '-m', 'pip', 'uninstall', '-y', 'onnxruntime', 'onnxruntime-gpu'])
+    correr([str(PYTHON), '-m', 'pip', 'install', 'onnxruntime-gpu[cuda,cudnn]==1.22.0'])
+    correr([str(PYTHON), '-c', 'import cv2, numpy, fast_alpr, open_image_models, onnxruntime'])
     marca.write_text(VERSION)
 print('PREPARACION LISTA. Sigue al paso 2. Codigo:', VERSION[:12])
 ''')

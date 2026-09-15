@@ -122,3 +122,28 @@ def test_el_notebook_generado_coincide_con_el_generador():
                    check=True, capture_output=True, cwd=raiz)
 
     assert (raiz / 'colab/placas_lastre.ipynb').read_text() == antes
+
+
+def test_el_primer_paso_no_usa_el_venv_del_sistema():
+    """El Python de Colab no trae ensurepip y `python -m venv` falla ahi.
+
+    Reproducido en Colab: CalledProcessError con exit 1 al crear el entorno.
+    virtualenv no depende de ensurepip y si funciona.
+    """
+    raiz = Path(__file__).resolve().parents[1]
+    notebook = json.loads((raiz / 'colab/placas_lastre.ipynb').read_text())
+    primera = ''.join(
+        [c for c in notebook['cells'] if c['cell_type'] == 'code'][0]['source'])
+
+    assert "'venv'" not in primera
+    assert 'virtualenv' in primera
+
+
+def test_el_primer_paso_muestra_el_error_real_de_un_comando():
+    """Un CalledProcessError pelado no dice que fallo ni por que."""
+    raiz = Path(__file__).resolve().parents[1]
+    notebook = json.loads((raiz / 'colab/placas_lastre.ipynb').read_text())
+    primera = ''.join(
+        [c for c in notebook['cells'] if c['cell_type'] == 'code'][0]['source'])
+
+    assert 'stderr' in primera
