@@ -118,3 +118,61 @@ def test_objeto_sin_sesion_no_rompe():
 
     assert not activa
     assert "No se pudo determinar" in mensaje
+
+
+# --- Verificacion conjunta de los modelos cargados --------------------------
+
+def test_verificar_sesiones_confirma_todos_los_modelos_en_gpu():
+    """El lote carga tres modelos; basta que uno caiga para invalidar la medida."""
+    from lastre.aceleracion import verificar_sesiones
+
+    todo_bien, informes = verificar_sesiones(
+        {"detector": _ModeloFalso(CON_GPU), "lector": _ModeloFalso(CON_GPU)}, "gpu"
+    )
+
+    assert todo_bien
+    assert len(informes) == 2
+
+
+def test_verificar_sesiones_delata_el_modelo_que_cayo_a_procesador():
+    """Nombrar cuál cayó evita buscar a ciegas en un lote de horas."""
+    from lastre.aceleracion import verificar_sesiones
+
+    todo_bien, informes = verificar_sesiones(
+        {"detector": _ModeloFalso(CON_GPU), "lector": _ModeloFalso((PROVEEDOR_CPU,))},
+        "gpu",
+    )
+
+    assert not todo_bien
+    assert any("lector" in i and "procesador" in i.lower() for i in informes)
+
+
+def test_verificar_sesiones_en_modo_procesador_no_es_un_fallo():
+    """Pedir CPU y obtener CPU es el resultado correcto, no una degradacion."""
+    from lastre.aceleracion import verificar_sesiones
+
+    todo_bien, _ = verificar_sesiones(
+        {"detector": _ModeloFalso((PROVEEDOR_CPU,))}, "cpu"
+    )
+
+    assert todo_bien
+
+
+def test_verificar_sesiones_en_auto_no_falla_sin_gpu():
+    """'auto' acepta el procesador: solo informa, no bloquea el lote."""
+    from lastre.aceleracion import verificar_sesiones
+
+    todo_bien, informes = verificar_sesiones(
+        {"detector": _ModeloFalso((PROVEEDOR_CPU,))}, "auto"
+    )
+
+    assert todo_bien
+    assert informes
+
+
+def test_verificar_sesiones_sin_modelos_se_rechaza():
+    """Informar 'todo correcto' sin haber comprobado nada seria enganoso."""
+    from lastre.aceleracion import AceleracionError, verificar_sesiones
+
+    with pytest.raises(AceleracionError):
+        verificar_sesiones({}, "gpu")
