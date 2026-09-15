@@ -81,3 +81,18 @@ El diagnóstico anterior que atribuía este caso al seguidor queda corregido.
 Tras GREEN se retiraron dos imports sin uso detectados por pyflakes. Las 24
 pruebas del detector vuelven a pasar; pyflakes queda limpio. La ejecución real
 usó el mismo comportamiento, anterior solamente a esa limpieza de imports.
+
+## Ampliación: cajas degeneradas
+
+Se añadió una prueba parametrizada con cinco casos: ancho cero, alto cero,
+punto y esquinas invertidas en cada eje. Comprueba que se descartan antes de
+consultar la zona y que una detección válida del mismo cuadro se conserva.
+La zona se sustituye por un doble que acepta todo: así otro filtro no puede
+ocultar la ausencia de la guarda de área.
+
+Las **29 pruebas del detector pasan**; cobertura de sentencias y ramas combinada
+**93 %**, 5 sentencias sin cubrir, 1 rama parcial, correspondientes a la carga
+del modelo (líneas 98–107). Datos en
+`validacion/deduplicacion_cajas_20260915/coverage-degeneradas.data`.
+Es cobertura adicional de comportamiento existente: no hubo cambio de producción
+ni una fase RED nueva. No se repitieron videos por este cambio exclusivo de pruebas.

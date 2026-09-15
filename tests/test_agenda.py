@@ -96,18 +96,18 @@ def test_la_agenda_no_repite_la_evidencia_si_ya_es_candidata():
 
 
 def test_el_ultimo_cuadro_cubre_la_evidencia_posterior_al_ultimo_candidato():
-    """Cortar la lectura en el último candidato dejaría sin foto al vehículo.
-
-    Aquí el cuadro más grande es el final, después del último área legible.
-    """
+    """Un segundo vehículo pequeño necesita evidencia después del último OCR."""
     xs = list(range(1300, 1300 + 20 * 60, 60))
-    areas = [90000] * 2 + [1000] * 17 + [500000]
-    vehiculos = _vehiculos(_trayectoria(1, xs, areas=areas))
+    # Intervalos simultáneos: no se fusionan; B acaba más tarde y nunca es OCR.
+    uno = _trayectoria(1, xs[:10], areas=[90000] * 10)
+    dos = _trayectoria(2, xs, areas=[1000] * 19 + [2000])
+    vehiculos = _vehiculos(uno, dos)
 
     agenda = construir_agenda(vehiculos, AREA_MINIMA)
 
-    assert ultimo_cuadro_necesario(agenda) == vehiculos[0].cuadro_representativo
     assert ultimo_cuadro_necesario(agenda) == 119
+    assert max(t.cuadro for ts in agenda.values() for t in ts if t.es_candidato) == 109
+    assert agenda[119][0].es_evidencia and not agenda[119][0].es_candidato
 
 
 def test_agenda_vacia_no_tiene_ultimo_cuadro():
@@ -176,3 +176,14 @@ def test_las_tareas_se_pueden_agrupar_por_vehiculo():
 def test_agrupar_una_agenda_vacia_no_inventa_vehiculos():
     """Sin observaciones no hay tareas que agrupar."""
     assert tareas_por_vehiculo({}) == {}
+
+
+def test_evidencia_distingue_cajas_del_mismo_cuadro():
+    uno = Posicion(10, (100, 100), (80, 80, 40, 40), 1600)
+    dos = Posicion(10, (130, 100), (105, 75, 50, 50), 2500)
+    # La heurística de continuaciones admite actualmente hueco cero.
+    vehiculos = registrar_vehiculos([
+        Trayectoria(1, 10, 10, (uno,)), Trayectoria(2, 10, 10, (dos,))], 1, 1)
+    tareas = construir_agenda(vehiculos, 1000)[10]
+    assert len(tareas) == 2
+    assert [t.caja for t in tareas if t.es_evidencia] == [dos.caja]

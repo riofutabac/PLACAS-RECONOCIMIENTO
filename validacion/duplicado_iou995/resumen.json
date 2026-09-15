@@ -1,0 +1,109 @@
+{
+  "cuadros": 8222,
+  "hallazgos_iou_mayor_0_9": [
+    {
+      "cuadro": 772,
+      "iou": 0.9948,
+      "identicas": false,
+      "a": {
+        "clase": "car",
+        "conf": 0.964,
+        "caja": [
+          1847,
+          1064,
+          1113,
+          593
+        ]
+      },
+      "b": {
+        "clase": "car",
+        "conf": 0.503,
+        "caja": [
+          1849,
+          1064,
+          1111,
+          591
+        ]
+      }
+    },
+    {
+      "cuadro": 6708,
+      "iou": 1.0,
+      "identicas": true,
+      "a": {
+        "clase": "car",
+        "conf": 0.6,
+        "caja": [
+          1233,
+          798,
+          1088,
+          644
+        ]
+      },
+      "b": {
+        "clase": "truck",
+        "conf": 0.526,
+        "caja": [
+          1233,
+          798,
+          1088,
+          644
+        ]
+      }
+    }
+  ],
+  "trayectorias_totales": 13,
+  "trayectorias_por_observaciones": [
+    124,
+    92,
+    66,
+    62,
+    23,
+    23,
+    2,
+    2,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "vehiculos_registrados_sin_deduplicar_cajas": 5,
+  "vehiculos": [
+    {
+      "id": 1,
+      "inicio": 437,
+      "fin": 772,
+      "obs": 93,
+      "sentido": "sale"
+    },
+    {
+      "id": 3,
+      "inicio": 2602,
+      "fin": 3109,
+      "obs": 126,
+      "sentido": "entra"
+    },
+    {
+      "id": 4,
+      "inicio": 2845,
+      "fin": 3109,
+      "obs": 63,
+      "sentido": "entra"
+    },
+    {
+      "id": 5,
+      "inicio": 2989,
+      "fin": 3058,
+      "obs": 23,
+      "sentido": "entra"
+    },
+    {
+      "id": 9,
+      "inicio": 6681,
+      "fin": 7026,
+      "obs": 91,
+      "sentido": "entra"
+    }
+  ]
+}

@@ -18,13 +18,12 @@ import time
 # Permite ejecutar el script sin instalar el paquete
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import cv2
-
 from lastre.config import cargar_configuracion, ConfiguracionError
 from lastre.deduplicacion import deduplicar_por_placa
 from lastre.lectura import Lectura, consolidar_lecturas
 from lastre.placa import LectorPlacas, PlacaError, recortar_vehiculo
 from lastre.agenda import construir_agenda, ultimo_cuadro_necesario
+from lastre.imagenes import guardar_imagen
 from lastre.registro import registrar_vehiculos
 from lastre.trayectoria import Posicion, Trayectoria
 from lastre.video import iterar_cuadros, VideoLecturaError
@@ -162,23 +161,23 @@ def main():
                 continue
 
             for tarea in pendientes:
-                nombre = f"v{tarea.indice + 1:02d}_f{numero}.jpg"
+                coordenadas = "_".join(str(v) for v in tarea.caja)
+                nombre = f"v{tarea.indice + 1:02d}_f{numero}_{coordenadas}.jpg"
                 ruta_recorte = f"placas/{nombre}"
 
                 # Un solo recorte por observación: recalcularlo por cada placa
                 # encontrada repetía el trabajo y reescribía el mismo archivo.
                 try:
                     recorte = recortar_vehiculo(cuadro, tarea.caja)
-                except PlacaError:
-                    continue
+                except PlacaError as exc:
+                    raise OSError(f"No se pudo recortar la evidencia del cuadro {numero}") from exc
 
                 guardado = False
 
                 # La evidencia se guarda sin esperar al OCR: un vehículo sin
                 # placa legible sigue necesitando su foto.
                 if tarea.es_evidencia:
-                    cv2.imwrite(str(dir_recortes / nombre), recorte,
-                                [cv2.IMWRITE_JPEG_QUALITY, 95])
+                    guardar_imagen(dir_recortes / nombre, recorte)
                     evidencia_por_vehiculo[tarea.indice] = ruta_recorte
                     guardado = True
 
@@ -194,8 +193,7 @@ def main():
                     continue
 
                 if encontradas and not guardado:
-                    cv2.imwrite(str(dir_recortes / nombre), recorte,
-                                [cv2.IMWRITE_JPEG_QUALITY, 95])
+                    guardar_imagen(dir_recortes / nombre, recorte)
 
                 for encontrada in encontradas:
                     lecturas_por_vehiculo[tarea.indice].append(
@@ -210,16 +208,21 @@ def main():
 
             if analizados % 50 == 0:
                 print(f"  {analizados}/{total_candidatos} recortes analizados", flush=True)
-    except VideoLecturaError as err:
+    except (VideoLecturaError, OSError) as err:
         print(f"Error al leer el video: {err}", file=sys.stderr)
         sys.exit(1)
 
     crudos = []
     for indice, vehiculo in enumerate(vehiculos):
+        if indice not in evidencia_por_vehiculo:
+            raise OSError(f"El video terminó sin evidencia del vehículo {indice + 1}")
         resultado = consolidar_lecturas(
             lecturas_por_vehiculo[indice], args.umbral, args.minimo_lecturas
         )
         crudos.append({
+            "trayectoria_id": vehiculo.trayectoria_id,
+            "cuadro_inicio": vehiculo.cuadro_inicio,
+            "cuadro_fin": vehiculo.cuadro_fin,
             "cuadro": vehiculo.cuadro_representativo,
             "placa": resultado.placa,
             "sentido": vehiculo.sentido,
@@ -233,12 +236,10 @@ def main():
     # Un mismo vehículo puede quedar registrado dos veces cuando el seguimiento
     # lo pierde durante segundos; la placa lo identifica sin ambigüedad.
     finales = deduplicar_por_placa(crudos, ventana_cuadros=args.ventana_duplicados)
-    por_cuadro_crudo = {c["cuadro"]: c for c in crudos}
 
     filas = []
     for indice, final in enumerate(finales):
         segundos = final.cuadro / args.fps
-        origen = por_cuadro_crudo.get(final.cuadro, {})
         filas.append({
             "registro": f"V{indice + 1:03d}",
             "placa": final.placa or "",
@@ -247,7 +248,7 @@ def main():
             "tipo_vehiculo": "",
             "sentido": final.sentido,
             "confianza": f"{final.confianza:.3f}",
-            "lecturas": origen.get("lecturas", 0),
+            "lecturas": final.lecturas,
             "imagen": final.imagen,
             "estado": final.estado,
         })

@@ -1,0 +1,748 @@
+diff --git a/lastre/agenda.py b/lastre/agenda.py
+index 40c6d3f..26925e1 100644
+--- a/lastre/agenda.py
++++ b/lastre/agenda.py
+@@ -58,7 +58,8 @@ def construir_agenda(vehiculos: Sequence, area_minima: int) -> Agenda:
+                     posicion.cuadro,
+                     posicion.caja,
+                     es_candidato=True,
+-                    es_evidencia=posicion.cuadro == representativo,
++                    es_evidencia=(posicion.cuadro == representativo
++                                  and posicion.caja == vehiculo.caja_representativa),
+                 )
+             )
+ 
+diff --git a/lastre/deduplicacion.py b/lastre/deduplicacion.py
+index 973ec35..03c7aac 100644
+--- a/lastre/deduplicacion.py
++++ b/lastre/deduplicacion.py
+@@ -1,8 +1,8 @@
+ """Fusión de registros que corresponden a un mismo vehículo.
+ 
+ Cuando el seguimiento pierde un vehículo durante varios segundos, la fusión
+-por cercanía espacial ya no alcanza. La placa, en cambio, es identidad: dos
+-registros con la misma placa en un intervalo corto son el mismo vehículo.
++por cercanía espacial ya no alcanza. Una placa validada permite unir fragmentos
++compatibles, pero nunca observaciones simultáneas ni lecturas pendientes.
+ """
+ 
+ from dataclasses import dataclass
+@@ -23,6 +23,10 @@ class RegistroFinal:
+     estado: str
+     imagen: str
+     registros_fusionados: int
++    lecturas: int = 0
++    trayectoria_id: Optional[int] = None
++    cuadro_inicio: Optional[int] = None
++    cuadro_fin: Optional[int] = None
+ 
+     @property
+     def fue_duplicado(self) -> bool:
+@@ -30,6 +34,22 @@ class RegistroFinal:
+         return self.registros_fusionados > 1
+ 
+ 
++def _son_compatibles(a: dict, b: dict) -> bool:
++    """Descarta contradicciones de confianza, dirección y coexistencia."""
++    if a.get("estado") != "validado" or b.get("estado") != "validado":
++        return False
++    sentidos = {a.get("sentido"), b.get("sentido")}
++    if "entra" in sentidos and "sale" in sentidos:
++        return False
++    limites = (a.get("cuadro_inicio"), a.get("cuadro_fin"),
++               b.get("cuadro_inicio"), b.get("cuadro_fin"))
++    if all(limite is not None for limite in limites):
++        inicio_a, fin_a, inicio_b, fin_b = limites
++        if max(inicio_a, inicio_b) <= min(fin_a, fin_b):
++            return False
++    return True
++
++
+ def deduplicar_por_placa(
+     registros: Sequence[dict],
+     ventana_cuadros: int,
+@@ -56,6 +76,8 @@ def deduplicar_por_placa(
+             for grupo in grupos:
+                 if grupo[-1].get("placa") != placa:
+                     continue
++                if not all(_son_compatibles(registro, miembro) for miembro in grupo):
++                    continue
+                 if registro["cuadro"] - grupo[-1]["cuadro"] <= ventana_cuadros:
+                     destino = grupo
+                     break
+@@ -69,6 +91,10 @@ def deduplicar_por_placa(
+     for grupo in grupos:
+         # Se conserva la aparición de mayor confianza como representativa
+         mejor = max(grupo, key=lambda r: r.get("confianza", 0.0))
++        tiene_intervalos = all(
++            r.get("cuadro_inicio") is not None and r.get("cuadro_fin") is not None
++            for r in grupo
++        )
+         finales.append(
+             RegistroFinal(
+                 placa=mejor.get("placa"),
+@@ -78,6 +104,10 @@ def deduplicar_por_placa(
+                 estado=mejor["estado"],
+                 imagen=mejor.get("imagen", ""),
+                 registros_fusionados=len(grupo),
++                lecturas=mejor.get("lecturas", 0),
++                trayectoria_id=grupo[0].get("trayectoria_id"),
++                cuadro_inicio=min(r["cuadro_inicio"] for r in grupo) if tiene_intervalos else None,
++                cuadro_fin=max(r["cuadro_fin"] for r in grupo) if tiene_intervalos else None,
+             )
+         )
+ 
+diff --git a/lastre/evidencia.py b/lastre/evidencia.py
+index d5c1c2b..6193213 100644
+--- a/lastre/evidencia.py
++++ b/lastre/evidencia.py
+@@ -16,8 +16,9 @@ import cv2
+ import numpy as np
+ 
+ from lastre.placa import PlacaError, recortar_vehiculo
++from lastre.trayectoria import Posicion
+ 
+-CALIDAD_JPEG = 95
++CALIDAD_JPEG = 92
+ 
+ Clave = Tuple[int, Tuple[int, int, int, int]]
+ 
+@@ -50,6 +51,9 @@ class AlmacenRecortes:
+ 
+         self._calidad = calidad
+         self._recortes: Dict[Clave, bytes] = {}
++        self._permanentes: set[Clave] = set()
++        self._mejores: Dict[int, Tuple[float, Clave]] = {}
++        self._referencias: Dict[Clave, int] = {}
+ 
+     def __len__(self) -> int:
+         """Cantidad de observaciones almacenadas."""
+@@ -70,6 +74,49 @@ class AlmacenRecortes:
+ 
+         Guardar dos veces la misma observación no duplica el almacenamiento.
+         """
++        self._comprimir(numero_cuadro, caja, cuadro)
++        self._permanentes.add(clave_de(numero_cuadro, caja))
++
++    def guardar_observacion(
++        self, id_pista: int, posicion: Posicion, cuadro: np.ndarray,
++        area_minima: int,
++    ) -> None:
++        """Conserva todos los candidatos OCR y la mejor evidencia por pista.
++
++        Las continuaciones conservan representantes independientes: el registro
++        final puede elegir la mejor de ellas después de fusionar las pistas.
++        Los empates mantienen la primera, como registrar_vehiculos.
++        """
++        if area_minima < 0:
++            raise EvidenciaError("area_minima debe ser >= 0")
++        clave = clave_de(posicion.cuadro, posicion.caja)
++        anterior = self._mejores.get(id_pista)
++        es_mejor = anterior is None or posicion.area > anterior[0]
++        es_candidato = posicion.area >= area_minima
++        if not es_candidato and not es_mejor:
++            return
++
++        # No reemplazar evidencia válida si falla la nueva compresión.
++        self._comprimir(posicion.cuadro, posicion.caja, cuadro)
++        if es_candidato:
++            self._permanentes.add(clave)
++        if not es_mejor:
++            return
++
++        self._mejores[id_pista] = (posicion.area, clave)
++        self._referencias[clave] = self._referencias.get(clave, 0) + 1
++        if anterior is not None:
++            vieja = anterior[1]
++            self._referencias[vieja] -= 1
++            if self._referencias[vieja] == 0:
++                del self._referencias[vieja]
++                if vieja not in self._permanentes:
++                    del self._recortes[vieja]
++
++    def _comprimir(
++        self, numero_cuadro: int, caja: Tuple[int, int, int, int],
++        cuadro: np.ndarray,
++    ) -> None:
+         clave = clave_de(numero_cuadro, caja)
+         if clave in self._recortes:
+             return
+@@ -81,9 +128,12 @@ class AlmacenRecortes:
+                 f"No se pudo recortar la observación {clave}: {exc}"
+             ) from exc
+ 
+-        ok, codificado = cv2.imencode(
+-            ".jpg", recorte, [cv2.IMWRITE_JPEG_QUALITY, self._calidad]
+-        )
++        try:
++            ok, codificado = cv2.imencode(
++                ".jpg", recorte, [cv2.IMWRITE_JPEG_QUALITY, self._calidad]
++            )
++        except cv2.error as exc:
++            raise EvidenciaError(f"No se pudo comprimir el recorte {clave}: {exc}") from exc
+         if not ok:
+             raise EvidenciaError(f"No se pudo comprimir el recorte {clave}")
+ 
+@@ -98,4 +148,10 @@ class AlmacenRecortes:
+         codificado = self._recortes.get(clave_de(numero_cuadro, caja))
+         if codificado is None:
+             return None
+-        return cv2.imdecode(np.frombuffer(codificado, np.uint8), cv2.IMREAD_COLOR)
++        try:
++            recorte = cv2.imdecode(np.frombuffer(codificado, np.uint8), cv2.IMREAD_COLOR)
++        except cv2.error as exc:
++            raise EvidenciaError(f"No se pudo decodificar el recorte {numero_cuadro}: {exc}") from exc
++        if recorte is None:
++            raise EvidenciaError(f"Recorte almacenado ilegible en cuadro {numero_cuadro}")
++        return recorte
+diff --git a/lastre/seguimiento.py b/lastre/seguimiento.py
+index bc0c063..097952b 100644
+--- a/lastre/seguimiento.py
++++ b/lastre/seguimiento.py
+@@ -1,8 +1,7 @@
+ """Módulo de seguimiento temporal y asociación de detecciones entre cuadros."""
+ 
+-from dataclasses import dataclass, field
+ import math
+-from typing import Dict, List, Optional, Sequence, Tuple
++from typing import Dict, List, Sequence, Tuple
+ 
+ from lastre.config import ZonaConfig
+ from lastre.deteccion import Deteccion
+@@ -75,6 +74,19 @@ class SeguidorTrayectorias:
+         """Indica si algún vehículo está siendo seguido en este momento."""
+         return bool(self._pistas_activas)
+ 
++    def observaciones_en_cuadro(
++        self, numero_cuadro: int,
++    ) -> Tuple[Tuple[int, Posicion], ...]:
++        """Expone observaciones recién asociadas, sin inventar cajas en oclusión.
++
++        Consultar después de actualizar el cuadro y antes de finalizar.
++        """
++        return tuple(
++            (pista.id, pista.observaciones[-1])
++            for pista in self._pistas_activas.values()
++            if pista.cuadro_ultimo == numero_cuadro
++        )
++
+     def actualizar(
+         self,
+         numero_cuadro: int,
+diff --git a/scripts/leer_placas.py b/scripts/leer_placas.py
+index 3c03309..c7c2eb2 100644
+--- a/scripts/leer_placas.py
++++ b/scripts/leer_placas.py
+@@ -18,13 +18,12 @@ import time
+ # Permite ejecutar el script sin instalar el paquete
+ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ 
+-import cv2
+-
+ from lastre.config import cargar_configuracion, ConfiguracionError
+ from lastre.deduplicacion import deduplicar_por_placa
+ from lastre.lectura import Lectura, consolidar_lecturas
+ from lastre.placa import LectorPlacas, PlacaError, recortar_vehiculo
+ from lastre.agenda import construir_agenda, ultimo_cuadro_necesario
++from lastre.imagenes import guardar_imagen
+ from lastre.registro import registrar_vehiculos
+ from lastre.trayectoria import Posicion, Trayectoria
+ from lastre.video import iterar_cuadros, VideoLecturaError
+@@ -162,23 +161,23 @@ def main():
+                 continue
+ 
+             for tarea in pendientes:
+-                nombre = f"v{tarea.indice + 1:02d}_f{numero}.jpg"
++                coordenadas = "_".join(str(v) for v in tarea.caja)
++                nombre = f"v{tarea.indice + 1:02d}_f{numero}_{coordenadas}.jpg"
+                 ruta_recorte = f"placas/{nombre}"
+ 
+                 # Un solo recorte por observación: recalcularlo por cada placa
+                 # encontrada repetía el trabajo y reescribía el mismo archivo.
+                 try:
+                     recorte = recortar_vehiculo(cuadro, tarea.caja)
+-                except PlacaError:
+-                    continue
++                except PlacaError as exc:
++                    raise OSError(f"No se pudo recortar la evidencia del cuadro {numero}") from exc
+ 
+                 guardado = False
+ 
+                 # La evidencia se guarda sin esperar al OCR: un vehículo sin
+                 # placa legible sigue necesitando su foto.
+                 if tarea.es_evidencia:
+-                    cv2.imwrite(str(dir_recortes / nombre), recorte,
+-                                [cv2.IMWRITE_JPEG_QUALITY, 95])
++                    guardar_imagen(dir_recortes / nombre, recorte)
+                     evidencia_por_vehiculo[tarea.indice] = ruta_recorte
+                     guardado = True
+ 
+@@ -194,8 +193,7 @@ def main():
+                     continue
+ 
+                 if encontradas and not guardado:
+-                    cv2.imwrite(str(dir_recortes / nombre), recorte,
+-                                [cv2.IMWRITE_JPEG_QUALITY, 95])
++                    guardar_imagen(dir_recortes / nombre, recorte)
+ 
+                 for encontrada in encontradas:
+                     lecturas_por_vehiculo[tarea.indice].append(
+@@ -210,16 +208,21 @@ def main():
+ 
+             if analizados % 50 == 0:
+                 print(f"  {analizados}/{total_candidatos} recortes analizados", flush=True)
+-    except VideoLecturaError as err:
++    except (VideoLecturaError, OSError) as err:
+         print(f"Error al leer el video: {err}", file=sys.stderr)
+         sys.exit(1)
+ 
+     crudos = []
+     for indice, vehiculo in enumerate(vehiculos):
++        if indice not in evidencia_por_vehiculo:
++            raise OSError(f"El video terminó sin evidencia del vehículo {indice + 1}")
+         resultado = consolidar_lecturas(
+             lecturas_por_vehiculo[indice], args.umbral, args.minimo_lecturas
+         )
+         crudos.append({
++            "trayectoria_id": vehiculo.trayectoria_id,
++            "cuadro_inicio": vehiculo.cuadro_inicio,
++            "cuadro_fin": vehiculo.cuadro_fin,
+             "cuadro": vehiculo.cuadro_representativo,
+             "placa": resultado.placa,
+             "sentido": vehiculo.sentido,
+@@ -233,12 +236,10 @@ def main():
+     # Un mismo vehículo puede quedar registrado dos veces cuando el seguimiento
+     # lo pierde durante segundos; la placa lo identifica sin ambigüedad.
+     finales = deduplicar_por_placa(crudos, ventana_cuadros=args.ventana_duplicados)
+-    por_cuadro_crudo = {c["cuadro"]: c for c in crudos}
+ 
+     filas = []
+     for indice, final in enumerate(finales):
+         segundos = final.cuadro / args.fps
+-        origen = por_cuadro_crudo.get(final.cuadro, {})
+         filas.append({
+             "registro": f"V{indice + 1:03d}",
+             "placa": final.placa or "",
+@@ -247,7 +248,7 @@ def main():
+             "tipo_vehiculo": "",
+             "sentido": final.sentido,
+             "confianza": f"{final.confianza:.3f}",
+-            "lecturas": origen.get("lecturas", 0),
++            "lecturas": final.lecturas,
+             "imagen": final.imagen,
+             "estado": final.estado,
+         })
+diff --git a/scripts/procesar_lote.py b/scripts/procesar_lote.py
+index 312bdca..3c24117 100644
+--- a/scripts/procesar_lote.py
++++ b/scripts/procesar_lote.py
+@@ -18,8 +18,6 @@ import time
+ # Permite ejecutar el script sin instalar el paquete
+ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ 
+-import cv2
+-
+ from lastre.aceleracion import AceleracionError, describir, elegir_proveedores
+ from lastre.checkpoint import Checkpoint
+ from lastre.config import cargar_configuracion, ConfiguracionError
+@@ -27,6 +25,7 @@ from lastre.deduplicacion import deduplicar_por_placa
+ from lastre.agenda import construir_agenda, tareas_por_vehiculo
+ from lastre.deteccion import DetectorMovimiento
+ from lastre.evidencia import AlmacenRecortes, EvidenciaError
++from lastre.imagenes import guardar_imagen
+ from lastre.excel import escribir_listado
+ from lastre.lectura import ESTADO_VALIDADO, Lectura, consolidar_lecturas
+ from lastre.medicion import Medidor
+@@ -34,7 +33,7 @@ from lastre.placa import LectorPlacas, PlacaError
+ from lastre.progreso import Progreso
+ from lastre.formato_ecuador import TIPO_MOTOCICLETA, tipo_de_placa
+ from lastre.registro import registrar_vehiculos
+-from lastre.reloj import RelojError, cargar_plantillas, leer_marca, rango_de_nombre
++from lastre.reloj import RelojError, cargar_plantillas, leer_marca
+ from lastre.seguimiento import SeguidorTrayectorias
+ from lastre.vehiculos import DetectorHibrido, DetectorVehiculos
+ from lastre.video import iterar_cuadros, obtener_metadatos_video, VideoLecturaError
+@@ -124,9 +123,10 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
+     fps = metadatos.fps or 25.0
+ 
+     detector = DetectorHibrido(
+-        DetectorMovimiento(config, factor_escala=0.25),
++        DetectorMovimiento(config, factor_escala=args.escala_movimiento),
+         DetectorVehiculos(config, modelo="rf-detr-nano-384-coco", proveedores=proveedores),
+         paso=args.paso,
++        paso_movimiento=args.paso_movimiento,
+     )
+     seguidor = SeguidorTrayectorias(config)
+ 
+@@ -159,16 +159,12 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
+         with medidor.fase("seguimiento"):
+             trayectorias.extend(seguidor.actualizar(numero, detecciones))
+ 
+-        # Solo se conserva el recorte de cada vehiculo detectado. Comprimir el
+-        # cuadro completo costaba ~142 ms y acumulaba ~3.3 GB por video para
+-        # que despues el lector mirara unicamente la caja del vehiculo.
++        # Candidatos OCR y mejor evidencia de cada pista, incluso sin placa.
+         if detecciones:
+             with medidor.fase("guardar recortes"):
+-                for deteccion in detecciones:
+-                    try:
+-                        almacen.guardar(numero, deteccion.caja, cuadro)
+-                    except EvidenciaError:
+-                        continue
++                for id_pista, posicion in seguidor.observaciones_en_cuadro(numero):
++                    almacen.guardar_observacion(
++                        id_pista, posicion, cuadro, AREA_MINIMA_PARA_LEER)
+ 
+         progreso.avanzar(1)
+         if time.time() - ultimo_informe >= 5:
+@@ -199,9 +195,11 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
+         for tarea in agenda.get(indice, ()):
+             recorte = almacen.obtener(tarea.cuadro, tarea.caja)
+             if recorte is None:
+-                continue
++                raise EvidenciaError(
++                    f"Falta el recorte requerido: cuadro {tarea.cuadro}, caja {tarea.caja}")
+ 
+-            nombre = f"{ruta.stem}_v{indice + 1:02d}_f{tarea.cuadro}.jpg"
++            coordenadas = "_".join(str(v) for v in tarea.caja)
++            nombre = f"{ruta.stem}_v{indice + 1:02d}_f{tarea.cuadro}_{coordenadas}.jpg"
+             ruta_recorte = f"recortes/{nombre}"
+ 
+             # La evidencia se guarda sin esperar al OCR: un vehiculo sin placa
+@@ -209,8 +207,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
+             guardado = False
+ 
+             if tarea.es_evidencia:
+-                cv2.imwrite(str(dir_recortes / nombre), recorte,
+-                            [cv2.IMWRITE_JPEG_QUALITY, 95])
++                guardar_imagen(dir_recortes / nombre, recorte)
+                 evidencia = ruta_recorte
+                 guardado = True
+ 
+@@ -228,8 +225,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
+             # Un solo archivo por observacion: escribirlo por cada placa
+             # encontrada reescribia el mismo contenido varias veces.
+             if encontradas and not guardado:
+-                cv2.imwrite(str(dir_recortes / nombre), recorte,
+-                            [cv2.IMWRITE_JPEG_QUALITY, 95])
++                guardar_imagen(dir_recortes / nombre, recorte)
+ 
+             for encontrada in encontradas:
+                 lecturas.append(Lectura(
+@@ -242,6 +238,9 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
+ 
+         resultado = consolidar_lecturas(lecturas, args.umbral, args.minimo_lecturas)
+         crudos.append({
++            "trayectoria_id": vehiculo.trayectoria_id,
++            "cuadro_inicio": vehiculo.cuadro_inicio,
++            "cuadro_fin": vehiculo.cuadro_fin,
+             "cuadro": vehiculo.cuadro_representativo,
+             "placa": resultado.placa,
+             "sentido": vehiculo.sentido,
+@@ -270,6 +269,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
+         # El consenso debe venir del mismo registro que aporta placa y estado
+         origen = por_imagen.get(final.imagen, {})
+         filas.append({
++            "trayectoria_id": final.trayectoria_id,
+             "placa": final.placa or "",
+             "hora_paso": hora,
+             "tiempo_video": f"{int(segundos) // 60:02d}:{int(segundos) % 60:02d}",
+@@ -380,7 +380,7 @@ def main():
+             cuadros = obtener_metadatos_video(video).total_cuadros
+             avance.guardar_video(video.name, filas, cuadros=cuadros)
+             print(f"    {len(filas)} vehiculos registrados y guardados", flush=True)
+-        except (VideoLecturaError, OSError) as err:
++        except (VideoLecturaError, OSError, EvidenciaError) as err:
+             fallidos.append((video.name, str(err)))
+             print(f"    ERROR: {err}", file=sys.stderr)
+         progreso.terminar_video()
+@@ -423,6 +423,12 @@ def _depurar_filas(filas, ventana_segundos=30):
+         if not fila.get("tipo_vehiculo"):
+             fila["tipo_vehiculo"] = _tipo_de_vehiculo(fila.get("placa"))
+ 
++        # Estos registros ya pasaron la deduplicación con intervalos e identidad.
++        # Repetirla aquí usando solo placa borraría vehículos coexistentes.
++        if fila.get("trayectoria_id") is not None:
++            depuradas.append(fila)
++            continue
++
+         placa = fila.get("placa")
+         segundos = _segundos_de(fila.get("tiempo_video"))
+         clave = (fila.get("video"), placa)
+diff --git a/tests/test_agenda.py b/tests/test_agenda.py
+index 10a53e2..79d475b 100644
+--- a/tests/test_agenda.py
++++ b/tests/test_agenda.py
+@@ -96,18 +96,18 @@ def test_la_agenda_no_repite_la_evidencia_si_ya_es_candidata():
+ 
+ 
+ def test_el_ultimo_cuadro_cubre_la_evidencia_posterior_al_ultimo_candidato():
+-    """Cortar la lectura en el último candidato dejaría sin foto al vehículo.
+-
+-    Aquí el cuadro más grande es el final, después del último área legible.
+-    """
++    """Un segundo vehículo pequeño necesita evidencia después del último OCR."""
+     xs = list(range(1300, 1300 + 20 * 60, 60))
+-    areas = [90000] * 2 + [1000] * 17 + [500000]
+-    vehiculos = _vehiculos(_trayectoria(1, xs, areas=areas))
++    # Intervalos simultáneos: no se fusionan; B acaba más tarde y nunca es OCR.
++    uno = _trayectoria(1, xs[:10], areas=[90000] * 10)
++    dos = _trayectoria(2, xs, areas=[1000] * 19 + [2000])
++    vehiculos = _vehiculos(uno, dos)
+ 
+     agenda = construir_agenda(vehiculos, AREA_MINIMA)
+ 
+-    assert ultimo_cuadro_necesario(agenda) == vehiculos[0].cuadro_representativo
+     assert ultimo_cuadro_necesario(agenda) == 119
++    assert max(t.cuadro for ts in agenda.values() for t in ts if t.es_candidato) == 109
++    assert agenda[119][0].es_evidencia and not agenda[119][0].es_candidato
+ 
+ 
+ def test_agenda_vacia_no_tiene_ultimo_cuadro():
+@@ -176,3 +176,14 @@ def test_las_tareas_se_pueden_agrupar_por_vehiculo():
+ def test_agrupar_una_agenda_vacia_no_inventa_vehiculos():
+     """Sin observaciones no hay tareas que agrupar."""
+     assert tareas_por_vehiculo({}) == {}
++
++
++def test_evidencia_distingue_cajas_del_mismo_cuadro():
++    uno = Posicion(10, (100, 100), (80, 80, 40, 40), 1600)
++    dos = Posicion(10, (130, 100), (105, 75, 50, 50), 2500)
++    # La heurística de continuaciones admite actualmente hueco cero.
++    vehiculos = registrar_vehiculos([
++        Trayectoria(1, 10, 10, (uno,)), Trayectoria(2, 10, 10, (dos,))], 1, 1)
++    tareas = construir_agenda(vehiculos, 1000)[10]
++    assert len(tareas) == 2
++    assert [t.caja for t in tareas if t.es_evidencia] == [dos.caja]
+diff --git a/tests/test_deduplicacion.py b/tests/test_deduplicacion.py
+index 3245cda..8c0cc98 100644
+--- a/tests/test_deduplicacion.py
++++ b/tests/test_deduplicacion.py
+@@ -82,3 +82,81 @@ def test_ventana_invalida():
+ def test_sin_registros_no_hay_resultado():
+     """Una entrada vacía produce una salida vacía, no un error."""
+     assert deduplicar_por_placa([], VENTANA) == ()
++
++
++def test_lecturas_pertenecen_a_la_evidencia_elegida():
++    primero = {**_registro(100, "PBA1234", 0.8), "lecturas": 2}
++    mejor = {**_registro(200, "PBA1234", 0.99), "lecturas": 8}
++    final = deduplicar_por_placa([primero, mejor], VENTANA)[0]
++    assert final.cuadro == 100
++    assert final.imagen == mejor["imagen"]
++    assert final.lecturas == 8
++
++
++def test_lecturas_independientes_en_el_mismo_cuadro():
++    a = {**_registro(100, "PBA1234"), "lecturas": 2}
++    b = {**_registro(100, "PBC5678"), "lecturas": 8}
++    assert {r.placa: r.lecturas for r in deduplicar_por_placa([a, b], VENTANA)} == {
++        "PBA1234": 2, "PBC5678": 8}
++
++
++@pytest.mark.parametrize("estados", [("pendiente", "pendiente"),
++                                    ("validado", "pendiente"),
++                                    ("pendiente", "validado")])
++def test_placa_pendiente_no_borra_otro_vehiculo(estados):
++    registros = [_registro(100, "PBA1234", estado=estados[0]),
++                 _registro(110, "PBA1234", estado=estados[1])]
++    assert len(deduplicar_por_placa(registros, VENTANA)) == 2
++
++
++def test_direcciones_opuestas_no_se_fusionan():
++    registros = [_registro(100, "PBA1234", sentido="entra"),
++                 _registro(110, "PBA1234", sentido="sale")]
++    assert len(deduplicar_por_placa(registros, VENTANA)) == 2
++
++
++def test_direccion_indeterminada_no_oculta_incompatibilidad_previa():
++    registros = [_registro(100, "PBA1234", sentido="entra"),
++                 _registro(110, "PBA1234", sentido="indeterminado"),
++                 _registro(120, "PBA1234", sentido="sale")]
++    assert len(deduplicar_por_placa(registros, VENTANA)) == 2
++
++
++def _con_intervalo(cuadro, inicio, fin, pista):
++    return {**_registro(cuadro, "PBA1234"), "cuadro_inicio": inicio,
++            "cuadro_fin": fin, "trayectoria_id": pista}
++
++
++@pytest.mark.parametrize("segundo_inicio", [50, 100])
++def test_coexistencia_incluso_en_cuadro_limite_no_se_fusiona(segundo_inicio):
++    registros = [_con_intervalo(10, 1, 100, 1),
++                 _con_intervalo(110, segundo_inicio, 120, 2)]
++    assert len(deduplicar_por_placa(registros, VENTANA)) == 2
++
++
++def test_coexistencia_se_comprueba_con_todo_el_grupo():
++    # Un miembro legacy intermedio no debe ocultar la coexistencia conocida.
++    registros = [_con_intervalo(10, 1, 100, 1),
++                 _registro(120, "PBA1234"),
++                 _con_intervalo(140, 90, 150, 3)]
++    finales = deduplicar_por_placa(registros, VENTANA)
++    assert len(finales) == 2
++    assert finales[0].registros_fusionados == 2
++
++
++def test_fragmentos_separados_conservan_intervalo_grupo_e_identidad():
++    registros = [_con_intervalo(10, 1, 100, 1),
++                 {**_con_intervalo(120, 110, 130, 2), "confianza": 0.99, "lecturas": 8}]
++    final = deduplicar_por_placa(registros, VENTANA)[0]
++    assert final.registros_fusionados == 2
++    assert final.trayectoria_id == 1
++    assert (final.cuadro_inicio, final.cuadro_fin) == (1, 130)
++    assert final.lecturas == 8
++
++
++def test_entrada_legacy_no_inventa_intervalos():
++    final = deduplicar_por_placa([_registro(10, "PBA1234"),
++                                 _con_intervalo(120, 110, 130, 2)], VENTANA)[0]
++    assert final.registros_fusionados == 2
++    assert final.cuadro_inicio is None and final.cuadro_fin is None
++    assert final.trayectoria_id is None
+diff --git a/tests/test_evidencia.py b/tests/test_evidencia.py
+index 0bac19e..db72bb2 100644
+--- a/tests/test_evidencia.py
++++ b/tests/test_evidencia.py
+@@ -108,3 +108,107 @@ def test_la_calidad_invalida_se_rechaza_al_construir():
+     """Un parámetro fuera de rango debe fallar de entrada, no por video."""
+     with pytest.raises(EvidenciaError):
+         AlmacenRecortes(calidad=0)
++
++
++def test_filtro_temprano_no_comprime_pequenas_que_no_mejoran(monkeypatch):
++    import cv2
++    llamadas = []
++    original = cv2.imencode
++    def contar(*args, **kwargs):
++        llamadas.append(1)
++        return original(*args, **kwargs)
++    monkeypatch.setattr(cv2, "imencode", contar)
++    almacen = AlmacenRecortes()
++    imagen = _cuadro()
++    almacen.guardar_observacion(1, _posicion(cuadro=1), imagen, 5000)
++    memoria = almacen.bytes_totales
++    for numero in range(2, 102):
++        almacen.guardar_observacion(1, _posicion(cuadro=numero), imagen, 5000)
++    assert len(llamadas) == 1
++    assert len(almacen) == 1
++    assert almacen.bytes_totales == memoria
++
++
++def test_conserva_umbral_inclusivo_y_todos_los_candidatos():
++    almacen = AlmacenRecortes()
++    imagen = _cuadro()
++    posiciones = [_posicion(cuadro=n, caja=(20, 20, ancho, 40))
++                  for n, ancho in enumerate((40, 60, 80, 60), 1)]
++    for posicion in posiciones:
++        almacen.guardar_observacion(1, posicion, imagen, 2400)
++    assert almacen.obtener(posiciones[0].cuadro, posiciones[0].caja) is None
++    for posicion in posiciones[1:]:
++        assert almacen.obtener(posicion.cuadro, posicion.caja) is not None
++    assert len(almacen) == 3
++
++
++def test_reemplaza_solo_evidencia_pequena_y_conserva_otras_pistas():
++    almacen = AlmacenRecortes()
++    imagen = _cuadro()
++    vieja = _posicion(cuadro=1)
++    mejor = _posicion(cuadro=2, caja=(100, 80, 80, 40))
++    for pista in (1, 2):
++        almacen.guardar_observacion(pista, vieja, imagen, 5000)
++    almacen.guardar_observacion(1, mejor, imagen, 5000)
++    assert almacen.obtener(vieja.cuadro, vieja.caja) is not None
++    almacen.guardar_observacion(2, mejor, imagen, 5000)
++    assert almacen.obtener(vieja.cuadro, vieja.caja) is None
++    assert len(almacen) == 1
++
++
++def test_evidencia_de_continuaciones_resuelve_representante_final():
++    from lastre.registro import registrar_vehiculos
++    from lastre.trayectoria import Trayectoria
++    almacen = AlmacenRecortes()
++    imagen = _cuadro()
++    primera = _posicion(cuadro=1)
++    ultima = _posicion(cuadro=3, caja=(100, 80, 80, 40))
++    trayectorias = []
++    for pista, posicion in enumerate((primera, ultima), 1):
++        almacen.guardar_observacion(pista, posicion, imagen, 5000)
++        trayectorias.append(Trayectoria(pista, posicion.cuadro,
++                                       posicion.cuadro, (posicion,)))
++    vehiculos = registrar_vehiculos(trayectorias, 1, 1)
++    assert len(vehiculos) == 1
++    assert vehiculos[0].cuadro_representativo == ultima.cuadro
++    assert almacen.obtener(vehiculos[0].cuadro_representativo,
++                            vehiculos[0].caja_representativa) is not None
++
++
++def test_error_de_nueva_evidencia_no_borra_la_anterior():
++    almacen = AlmacenRecortes()
++    primera = _posicion(cuadro=1)
++    almacen.guardar_observacion(1, primera, _cuadro(), 5000)
++    with pytest.raises(EvidenciaError):
++        almacen.guardar_observacion(
++            1, _posicion(cuadro=2, caja=(5000, 5000, 80, 40)), _cuadro(), 5000)
++    assert almacen.obtener(primera.cuadro, primera.caja) is not None
++
++
++def test_rechaza_umbral_negativo():
++    with pytest.raises(EvidenciaError):
++        AlmacenRecortes().guardar_observacion(1, _posicion(), _cuadro(), -1)
++
++
++def test_calidad_predeterminada_conserva_92(monkeypatch):
++    import cv2
++    original = cv2.imencode
++    parametros = []
++    def contar(extension, imagen, params):
++        parametros.extend(params)
++        return original(extension, imagen, params)
++    monkeypatch.setattr(cv2, "imencode", contar)
++    AlmacenRecortes().guardar(1, _posicion().caja, _cuadro())
++    assert parametros == [cv2.IMWRITE_JPEG_QUALITY, 92]
++def test_error_opencv_compresion_es_error_de_evidencia(monkeypatch):
++    import cv2
++    import numpy as np
++    import pytest
++    from lastre.evidencia import AlmacenRecortes, EvidenciaError
++
++    def fallar(*args, **kwargs):
++        raise cv2.error("compresor fallido")
++
++    monkeypatch.setattr(cv2, "imencode", fallar)
++    with pytest.raises(EvidenciaError, match="comprimir"):
++        AlmacenRecortes().guardar(1, (0, 0, 20, 20), np.zeros((30, 30, 3), np.uint8))
+diff --git a/tests/test_seguimiento.py b/tests/test_seguimiento.py
+index f354c06..c07a1cb 100644
+--- a/tests/test_seguimiento.py
++++ b/tests/test_seguimiento.py
+@@ -14,7 +14,7 @@ from lastre.config import (
+     ZonaConfig,
+ )
+ from lastre.deteccion import Deteccion
+-from lastre.seguimiento import SeguidorTrayectorias, SeguimientoError
++from lastre.seguimiento import SeguidorTrayectorias
+ from lastre.trayectoria import Posicion, Trayectoria
+ 
+ 
+@@ -135,3 +135,20 @@ def test_serializacion_json_dict():
+     assert d["cuadro_inicio"] == 10
+     assert d["total_observaciones"] == 1
+     assert d["posiciones"][0]["centro"] == [50, 60]
++
++
++def test_observaciones_del_cuadro_preservan_identidad_y_omiten_oclusion(config_seguimiento):
++    seguidor = SeguidorTrayectorias(config_seguimiento)
++    izquierda = Deteccion(caja=(100, 100, 40, 40), area=1600, centro=(120, 120))
++    derecha = Deteccion(caja=(300, 100, 40, 40), area=1600, centro=(320, 120))
++    seguidor.actualizar(1, [izquierda, derecha])
++    observadas = seguidor.observaciones_en_cuadro(1)
++    assert tuple(pista for pista, _ in observadas) == (1, 2)
++    assert tuple(posicion.caja for _, posicion in observadas) == (izquierda.caja, derecha.caja)
++    seguidor.actualizar(2, [derecha])
++    assert tuple(pista for pista, _ in seguidor.observaciones_en_cuadro(2)) == (2,)
++    seguidor.actualizar(3, [])
++    assert seguidor.observaciones_en_cuadro(3) == ()
++    finales = seguidor.finalizar()
++    assert observadas[0][1] == finales[0].posiciones[0]
++    assert seguidor.observaciones_en_cuadro(3) == ()

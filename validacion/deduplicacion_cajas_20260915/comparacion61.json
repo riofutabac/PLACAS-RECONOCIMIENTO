@@ -1,0 +1,163 @@
+{
+  "antes": [
+    {
+      "trayectoria_id": 1,
+      "placa": "RR773",
+      "hora_paso": "2026-09-09 16:24:00",
+      "tiempo_video": "01:14",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "motocicleta",
+      "sentido": "indeterminado",
+      "confianza": 0.641,
+      "consenso": 0.096,
+      "lecturas": 1,
+      "estado": "pendiente de revision",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v01_f1861_1177_596_232_256.jpg"
+    },
+    {
+      "trayectoria_id": 2,
+      "placa": "BAC2573",
+      "hora_paso": "2026-09-09 16:24:11",
+      "tiempo_video": "01:25",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.949,
+      "consenso": 0.186,
+      "lecturas": 6,
+      "estado": "pendiente de revision",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v02_f1933_1177_614_359_395.jpg"
+    },
+    {
+      "trayectoria_id": 6,
+      "placa": "MZS872",
+      "hora_paso": "2026-09-09 16:26:11",
+      "tiempo_video": "03:25",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.629,
+      "consenso": 1.0,
+      "lecturas": 1,
+      "estado": "pendiente de revision",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v03_f5108_1509_1006_373_329.jpg"
+    },
+    {
+      "trayectoria_id": 7,
+      "placa": "PAB6741",
+      "hora_paso": "2026-09-09 16:28:03",
+      "tiempo_video": "05:17",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.972,
+      "consenso": 0.656,
+      "lecturas": 30,
+      "estado": "validado",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v04_f7841_984_522_1061_787.jpg"
+    }
+  ],
+  "despues": [
+    {
+      "trayectoria_id": 1,
+      "placa": "BAC2573",
+      "hora_paso": "2026-09-09 16:24:11",
+      "tiempo_video": "01:25",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.949,
+      "consenso": 0.158,
+      "lecturas": 6,
+      "estado": "pendiente de revision",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v01_f1933_1177_614_359_395.jpg"
+    },
+    {
+      "trayectoria_id": 2,
+      "placa": "MZS872",
+      "hora_paso": "2026-09-09 16:26:11",
+      "tiempo_video": "03:25",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.629,
+      "consenso": 1.0,
+      "lecturas": 1,
+      "estado": "pendiente de revision",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v02_f5108_1509_1006_373_329.jpg"
+    },
+    {
+      "trayectoria_id": 3,
+      "placa": "PAB6741",
+      "hora_paso": "2026-09-09 16:28:03",
+      "tiempo_video": "05:17",
+      "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+      "tipo_vehiculo": "automovil",
+      "sentido": "sale",
+      "confianza": 0.972,
+      "consenso": 0.656,
+      "lecturas": 30,
+      "estado": "validado",
+      "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v03_f7841_984_522_1061_787.jpg"
+    }
+  ],
+  "excel": {
+    "Placas": {
+      "filas": 4,
+      "imagenes": 3
+    },
+    "Resumen": {
+      "filas": 16,
+      "imagenes": 0
+    }
+  },
+  "evidencia_existe": true,
+  "comparacion_registros_conservados": [
+    {
+      "placa": "BAC2573",
+      "imagen_identica": true,
+      "campos_modificados": {
+        "trayectoria_id": [
+          2,
+          1
+        ],
+        "consenso": [
+          0.186,
+          0.158
+        ],
+        "imagen": [
+          "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v02_f1933_1177_614_359_395.jpg",
+          "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v01_f1933_1177_614_359_395.jpg"
+        ]
+      }
+    },
+    {
+      "placa": "MZS872",
+      "imagen_identica": true,
+      "campos_modificados": {
+        "trayectoria_id": [
+          6,
+          2
+        ],
+        "imagen": [
+          "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v03_f5108_1509_1006_373_329.jpg",
+          "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v02_f5108_1509_1006_373_329.jpg"
+        ]
+      }
+    },
+    {
+      "placa": "PAB6741",
+      "imagen_identica": true,
+      "campos_modificados": {
+        "trayectoria_id": [
+          7,
+          3
+        ],
+        "imagen": [
+          "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v04_f7841_984_522_1061_787.jpg",
+          "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v03_f7841_984_522_1061_787.jpg"
+        ]
+      }
+    }
+  ]
+}

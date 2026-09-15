@@ -1,0 +1,36 @@
+    3 vehiculos registrados y guardados
+[#############################-] 100.0%  video 1/1  transcurrido 7m 45s  falta 0s
+
+REPARTO DEL TIEMPO
+------------------------------------------------------------------
+  etapa                    segundos       %   llamadas    ms c/u
+  detectar vehiculos          321.0   69.1%       8230      39.0
+  decodificar video           115.0   24.7%       8231      14.0
+  leer placa                   16.4    3.5%        189      86.9
+  guardar recortes              4.0    0.9%        235      16.8
+  seguimiento                   0.1    0.0%       8230       0.0
+  leer reloj                    0.0    0.0%          1      23.1
+------------------------------------------------------------------
+  sin atribuir                  8.2    1.8%
+  TOTAL                       464.8
+
+==============================================================================
+INFORME FINAL
+==============================================================================
+  Carpeta procesada          validacion/review_20260914/entrada61
+  Videos procesados          1
+  Videos con error           0
+  Cuadros analizados         8231
+  Vehiculos registrados      3
+  Vehiculos que salen        3
+  Vehiculos que entran       0
+  Sentido indeterminado      0
+  Registros sin hora real    0
+  Placas validadas           1
+  Pendientes de revision     2
+  Sin placa identificable    0
+  Tiempo total               7m 45s
+  Generado                   2026-09-15 00:38:36
+------------------------------------------------------------------------------
+  Excel: validacion/deduplicacion_cajas_20260915/informe61/placas_lastre.xlsx
+==============================================================================

@@ -1,0 +1,140 @@
+{
+  "baseline_intervalo": [
+    {
+      "placa": "PCM7497",
+      "cuadro": 763,
+      "sentido": "sale",
+      "confianza": 0.9265,
+      "estado": "pendiente de revision",
+      "imagen": "",
+      "registros_fusionados": 1
+    },
+    {
+      "placa": "TAA2204",
+      "cuadro": 2671,
+      "sentido": "entra",
+      "confianza": 0.9453,
+      "estado": "pendiente de revision",
+      "imagen": "",
+      "registros_fusionados": 2
+    },
+    {
+      "placa": "BI137",
+      "cuadro": 3013,
+      "sentido": "entra",
+      "confianza": 0.6511,
+      "estado": "pendiente de revision",
+      "imagen": "",
+      "registros_fusionados": 1
+    },
+    {
+      "placa": "VE9715",
+      "cuadro": 6732,
+      "sentido": "entra",
+      "confianza": 0.7212,
+      "estado": "pendiente de revision",
+      "imagen": "",
+      "registros_fusionados": 1
+    }
+  ],
+  "recortes_corregidos": [
+    {
+      "placa": "PCM2497",
+      "cuadro": 763,
+      "sentido": "sale",
+      "confianza": 0.9414,
+      "estado": "pendiente de revision",
+      "imagen": "",
+      "registros_fusionados": 1,
+      "lecturas": 9,
+      "trayectoria_id": 1,
+      "cuadro_inicio": 437,
+      "cuadro_fin": 772
+    },
+    {
+      "placa": "PCG3981",
+      "cuadro": 2671,
+      "sentido": "entra",
+      "confianza": 0.9641,
+      "estado": "pendiente de revision",
+      "imagen": "",
+      "registros_fusionados": 1,
+      "lecturas": 3,
+      "trayectoria_id": 3,
+      "cuadro_inicio": 2602,
+      "cuadro_fin": 3109
+    },
+    {
+      "placa": "TAA2204",
+      "cuadro": 2851,
+      "sentido": "entra",
+      "confianza": 0.9504,
+      "estado": "validado",
+      "imagen": "",
+      "registros_fusionados": 1,
+      "lecturas": 18,
+      "trayectoria_id": 4,
+      "cuadro_inicio": 2845,
+      "cuadro_fin": 3109
+    },
+    {
+      "placa": "JJ4306",
+      "cuadro": 3013,
+      "sentido": "entra",
+      "confianza": 0.6753,
+      "estado": "pendiente de revision",
+      "imagen": "",
+      "registros_fusionados": 1,
+      "lecturas": 1,
+      "trayectoria_id": 5,
+      "cuadro_inicio": 2989,
+      "cuadro_fin": 3058
+    },
+    {
+      "placa": "VE9715",
+      "cuadro": 6732,
+      "sentido": "entra",
+      "confianza": 0.7216,
+      "estado": "pendiente de revision",
+      "imagen": "",
+      "registros_fusionados": 1,
+      "lecturas": 1,
+      "trayectoria_id": 9,
+      "cuadro_inicio": 6681,
+      "cuadro_fin": 7026
+    }
+  ],
+  "metodo": "Deduplicacion original 546ed11 y corregida aplicada a resultados del experimento pareado; no rerun completo baseline.",
+  "intervalos_segundos": [
+    {
+      "id": 1,
+      "inicio": 17.565029688548154,
+      "fin": 31.030212630570198,
+      "sentido": "sale"
+    },
+    {
+      "id": 3,
+      "inicio": 104.58628661236224,
+      "fin": 124.96493661715381,
+      "sentido": "entra"
+    },
+    {
+      "id": 4,
+      "inicio": 114.35356856732152,
+      "fin": 124.96493661715381,
+      "sentido": "entra"
+    },
+    {
+      "id": 5,
+      "inicio": 120.14158750359367,
+      "fin": 122.91501324389075,
+      "sentido": "entra"
+    },
+    {
+      "id": 9,
+      "inicio": 268.53996189746044,
+      "fin": 282.40709059894584,
+      "sentido": "entra"
+    }
+  ]
+}

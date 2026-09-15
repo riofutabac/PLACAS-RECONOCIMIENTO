@@ -100,6 +100,33 @@ def test_descarta_detecciones_de_baja_confianza(config_zona, cuadro):
     assert _detector(config_zona, crudas, confianza_minima=0.5).detectar(cuadro) == ()
 
 
+@pytest.mark.parametrize("caja", [
+    _Caja(1400, 1240, 1400, 1400),  # ancho cero
+    _Caja(1300, 1400, 1500, 1400),  # alto cero
+    _Caja(1400, 1400, 1400, 1400),  # punto
+    _Caja(1500, 1240, 1300, 1400),  # esquinas horizontales invertidas
+    _Caja(1300, 1400, 1500, 1240),  # esquinas verticales invertidas
+])
+def test_descarta_cajas_degeneradas_antes_de_consultar_zona(
+    config_zona, cuadro, monkeypatch, caja,
+):
+    consultas = []
+
+    def aceptar_zona(caja, config, *, criterio):
+        consultas.append(caja)
+        return True
+
+    monkeypatch.setattr("lastre.vehiculos.caja_en_zona", aceptar_zona)
+    resultado = _detector(config_zona, [
+        _Cruda("bus", 0.99, caja),
+        _Cruda("car", 0.9, _caja_centrada_en(DENTRO)),
+    ]).detectar(cuadro)
+
+    assert len(resultado) == 1
+    assert resultado[0].clase == "car"
+    assert consultas == [resultado[0].caja]
+
+
 def test_motocicleta_se_marca_con_su_tipo(config_zona, cuadro):
     """La motocicleta se distingue porque su placa usa otro formato."""
     crudas = [_Cruda("motorcycle", 0.8, _caja_centrada_en(DENTRO))]

@@ -1,5 +1,10 @@
 # Evidencia TDD — Paso 1 de `plans/base-rapida-fiable.md`
 
+Actualización: esta es evidencia histórica de la implementación recibida.
+Consultar [la revisión posterior](revision-ecc-20260914.md) para correcciones,
+pruebas de integración y límites de validación. El filtro temprano de caché
+no estaba implementado en la versión descrita aquí; la agenda filtraba después.
+
 Rama: `codex/base-rapida-paso1`. Base: `546ed11`. Fecha: 2026-09-14.
 Runner: `.venv312/bin/pytest` (pytest 9.1.1). Python 3.12.
 

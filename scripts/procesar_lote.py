@@ -18,8 +18,6 @@ import time
 # Permite ejecutar el script sin instalar el paquete
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import cv2
-
 from lastre.aceleracion import AceleracionError, describir, elegir_proveedores
 from lastre.checkpoint import Checkpoint
 from lastre.config import cargar_configuracion, ConfiguracionError
@@ -27,6 +25,7 @@ from lastre.deduplicacion import deduplicar_por_placa
 from lastre.agenda import construir_agenda, tareas_por_vehiculo
 from lastre.deteccion import DetectorMovimiento
 from lastre.evidencia import AlmacenRecortes, EvidenciaError
+from lastre.imagenes import guardar_imagen
 from lastre.excel import escribir_listado
 from lastre.lectura import ESTADO_VALIDADO, Lectura, consolidar_lecturas
 from lastre.medicion import Medidor
@@ -34,7 +33,7 @@ from lastre.placa import LectorPlacas, PlacaError
 from lastre.progreso import Progreso
 from lastre.formato_ecuador import TIPO_MOTOCICLETA, tipo_de_placa
 from lastre.registro import registrar_vehiculos
-from lastre.reloj import RelojError, cargar_plantillas, leer_marca, rango_de_nombre
+from lastre.reloj import RelojError, cargar_plantillas, leer_marca
 from lastre.seguimiento import SeguidorTrayectorias
 from lastre.vehiculos import DetectorHibrido, DetectorVehiculos
 from lastre.video import iterar_cuadros, obtener_metadatos_video, VideoLecturaError
@@ -124,9 +123,10 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     fps = metadatos.fps or 25.0
 
     detector = DetectorHibrido(
-        DetectorMovimiento(config, factor_escala=0.25),
+        DetectorMovimiento(config, factor_escala=args.escala_movimiento),
         DetectorVehiculos(config, modelo="rf-detr-nano-384-coco", proveedores=proveedores),
         paso=args.paso,
+        paso_movimiento=args.paso_movimiento,
     )
     seguidor = SeguidorTrayectorias(config)
 
@@ -159,16 +159,12 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
         with medidor.fase("seguimiento"):
             trayectorias.extend(seguidor.actualizar(numero, detecciones))
 
-        # Solo se conserva el recorte de cada vehiculo detectado. Comprimir el
-        # cuadro completo costaba ~142 ms y acumulaba ~3.3 GB por video para
-        # que despues el lector mirara unicamente la caja del vehiculo.
+        # Candidatos OCR y mejor evidencia de cada pista, incluso sin placa.
         if detecciones:
             with medidor.fase("guardar recortes"):
-                for deteccion in detecciones:
-                    try:
-                        almacen.guardar(numero, deteccion.caja, cuadro)
-                    except EvidenciaError:
-                        continue
+                for id_pista, posicion in seguidor.observaciones_en_cuadro(numero):
+                    almacen.guardar_observacion(
+                        id_pista, posicion, cuadro, AREA_MINIMA_PARA_LEER)
 
         progreso.avanzar(1)
         if time.time() - ultimo_informe >= 5:
@@ -199,9 +195,11 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
         for tarea in agenda.get(indice, ()):
             recorte = almacen.obtener(tarea.cuadro, tarea.caja)
             if recorte is None:
-                continue
+                raise EvidenciaError(
+                    f"Falta el recorte requerido: cuadro {tarea.cuadro}, caja {tarea.caja}")
 
-            nombre = f"{ruta.stem}_v{indice + 1:02d}_f{tarea.cuadro}.jpg"
+            coordenadas = "_".join(str(v) for v in tarea.caja)
+            nombre = f"{ruta.stem}_v{indice + 1:02d}_f{tarea.cuadro}_{coordenadas}.jpg"
             ruta_recorte = f"recortes/{nombre}"
 
             # La evidencia se guarda sin esperar al OCR: un vehiculo sin placa
@@ -209,8 +207,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
             guardado = False
 
             if tarea.es_evidencia:
-                cv2.imwrite(str(dir_recortes / nombre), recorte,
-                            [cv2.IMWRITE_JPEG_QUALITY, 95])
+                guardar_imagen(dir_recortes / nombre, recorte)
                 evidencia = ruta_recorte
                 guardado = True
 
@@ -228,8 +225,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
             # Un solo archivo por observacion: escribirlo por cada placa
             # encontrada reescribia el mismo contenido varias veces.
             if encontradas and not guardado:
-                cv2.imwrite(str(dir_recortes / nombre), recorte,
-                            [cv2.IMWRITE_JPEG_QUALITY, 95])
+                guardar_imagen(dir_recortes / nombre, recorte)
 
             for encontrada in encontradas:
                 lecturas.append(Lectura(
@@ -242,6 +238,9 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
 
         resultado = consolidar_lecturas(lecturas, args.umbral, args.minimo_lecturas)
         crudos.append({
+            "trayectoria_id": vehiculo.trayectoria_id,
+            "cuadro_inicio": vehiculo.cuadro_inicio,
+            "cuadro_fin": vehiculo.cuadro_fin,
             "cuadro": vehiculo.cuadro_representativo,
             "placa": resultado.placa,
             "sentido": vehiculo.sentido,
@@ -270,6 +269,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
         # El consenso debe venir del mismo registro que aporta placa y estado
         origen = por_imagen.get(final.imagen, {})
         filas.append({
+            "trayectoria_id": final.trayectoria_id,
             "placa": final.placa or "",
             "hora_paso": hora,
             "tiempo_video": f"{int(segundos) // 60:02d}:{int(segundos) % 60:02d}",
@@ -380,7 +380,7 @@ def main():
             cuadros = obtener_metadatos_video(video).total_cuadros
             avance.guardar_video(video.name, filas, cuadros=cuadros)
             print(f"    {len(filas)} vehiculos registrados y guardados", flush=True)
-        except (VideoLecturaError, OSError) as err:
+        except (VideoLecturaError, OSError, EvidenciaError) as err:
             fallidos.append((video.name, str(err)))
             print(f"    ERROR: {err}", file=sys.stderr)
         progreso.terminar_video()
@@ -422,6 +422,12 @@ def _depurar_filas(filas, ventana_segundos=30):
         fila = dict(fila)
         if not fila.get("tipo_vehiculo"):
             fila["tipo_vehiculo"] = _tipo_de_vehiculo(fila.get("placa"))
+
+        # Estos registros ya pasaron la deduplicación con intervalos e identidad.
+        # Repetirla aquí usando solo placa borraría vehículos coexistentes.
+        if fila.get("trayectoria_id") is not None:
+            depuradas.append(fila)
+            continue
 
         placa = fila.get("placa")
         segundos = _segundos_de(fila.get("tiempo_video"))

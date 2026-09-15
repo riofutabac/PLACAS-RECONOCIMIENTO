@@ -58,7 +58,8 @@ def construir_agenda(vehiculos: Sequence, area_minima: int) -> Agenda:
                     posicion.cuadro,
                     posicion.caja,
                     es_candidato=True,
-                    es_evidencia=posicion.cuadro == representativo,
+                    es_evidencia=(posicion.cuadro == representativo
+                                  and posicion.caja == vehiculo.caja_representativa),
                 )
             )
 

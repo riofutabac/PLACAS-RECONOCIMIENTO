@@ -108,3 +108,107 @@ def test_la_calidad_invalida_se_rechaza_al_construir():
     """Un parámetro fuera de rango debe fallar de entrada, no por video."""
     with pytest.raises(EvidenciaError):
         AlmacenRecortes(calidad=0)
+
+
+def test_filtro_temprano_no_comprime_pequenas_que_no_mejoran(monkeypatch):
+    import cv2
+    llamadas = []
+    original = cv2.imencode
+    def contar(*args, **kwargs):
+        llamadas.append(1)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(cv2, "imencode", contar)
+    almacen = AlmacenRecortes()
+    imagen = _cuadro()
+    almacen.guardar_observacion(1, _posicion(cuadro=1), imagen, 5000)
+    memoria = almacen.bytes_totales
+    for numero in range(2, 102):
+        almacen.guardar_observacion(1, _posicion(cuadro=numero), imagen, 5000)
+    assert len(llamadas) == 1
+    assert len(almacen) == 1
+    assert almacen.bytes_totales == memoria
+
+
+def test_conserva_umbral_inclusivo_y_todos_los_candidatos():
+    almacen = AlmacenRecortes()
+    imagen = _cuadro()
+    posiciones = [_posicion(cuadro=n, caja=(20, 20, ancho, 40))
+                  for n, ancho in enumerate((40, 60, 80, 60), 1)]
+    for posicion in posiciones:
+        almacen.guardar_observacion(1, posicion, imagen, 2400)
+    assert almacen.obtener(posiciones[0].cuadro, posiciones[0].caja) is None
+    for posicion in posiciones[1:]:
+        assert almacen.obtener(posicion.cuadro, posicion.caja) is not None
+    assert len(almacen) == 3
+
+
+def test_reemplaza_solo_evidencia_pequena_y_conserva_otras_pistas():
+    almacen = AlmacenRecortes()
+    imagen = _cuadro()
+    vieja = _posicion(cuadro=1)
+    mejor = _posicion(cuadro=2, caja=(100, 80, 80, 40))
+    for pista in (1, 2):
+        almacen.guardar_observacion(pista, vieja, imagen, 5000)
+    almacen.guardar_observacion(1, mejor, imagen, 5000)
+    assert almacen.obtener(vieja.cuadro, vieja.caja) is not None
+    almacen.guardar_observacion(2, mejor, imagen, 5000)
+    assert almacen.obtener(vieja.cuadro, vieja.caja) is None
+    assert len(almacen) == 1
+
+
+def test_evidencia_de_continuaciones_resuelve_representante_final():
+    from lastre.registro import registrar_vehiculos
+    from lastre.trayectoria import Trayectoria
+    almacen = AlmacenRecortes()
+    imagen = _cuadro()
+    primera = _posicion(cuadro=1)
+    ultima = _posicion(cuadro=3, caja=(100, 80, 80, 40))
+    trayectorias = []
+    for pista, posicion in enumerate((primera, ultima), 1):
+        almacen.guardar_observacion(pista, posicion, imagen, 5000)
+        trayectorias.append(Trayectoria(pista, posicion.cuadro,
+                                       posicion.cuadro, (posicion,)))
+    vehiculos = registrar_vehiculos(trayectorias, 1, 1)
+    assert len(vehiculos) == 1
+    assert vehiculos[0].cuadro_representativo == ultima.cuadro
+    assert almacen.obtener(vehiculos[0].cuadro_representativo,
+                            vehiculos[0].caja_representativa) is not None
+
+
+def test_error_de_nueva_evidencia_no_borra_la_anterior():
+    almacen = AlmacenRecortes()
+    primera = _posicion(cuadro=1)
+    almacen.guardar_observacion(1, primera, _cuadro(), 5000)
+    with pytest.raises(EvidenciaError):
+        almacen.guardar_observacion(
+            1, _posicion(cuadro=2, caja=(5000, 5000, 80, 40)), _cuadro(), 5000)
+    assert almacen.obtener(primera.cuadro, primera.caja) is not None
+
+
+def test_rechaza_umbral_negativo():
+    with pytest.raises(EvidenciaError):
+        AlmacenRecortes().guardar_observacion(1, _posicion(), _cuadro(), -1)
+
+
+def test_calidad_predeterminada_conserva_92(monkeypatch):
+    import cv2
+    original = cv2.imencode
+    parametros = []
+    def contar(extension, imagen, params):
+        parametros.extend(params)
+        return original(extension, imagen, params)
+    monkeypatch.setattr(cv2, "imencode", contar)
+    AlmacenRecortes().guardar(1, _posicion().caja, _cuadro())
+    assert parametros == [cv2.IMWRITE_JPEG_QUALITY, 92]
+def test_error_opencv_compresion_es_error_de_evidencia(monkeypatch):
+    import cv2
+    import numpy as np
+    import pytest
+    from lastre.evidencia import AlmacenRecortes, EvidenciaError
+
+    def fallar(*args, **kwargs):
+        raise cv2.error("compresor fallido")
+
+    monkeypatch.setattr(cv2, "imencode", fallar)
+    with pytest.raises(EvidenciaError, match="comprimir"):
+        AlmacenRecortes().guardar(1, (0, 0, 20, 20), np.zeros((30, 30, 3), np.uint8))

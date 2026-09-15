@@ -14,7 +14,7 @@ from lastre.config import (
     ZonaConfig,
 )
 from lastre.deteccion import Deteccion
-from lastre.seguimiento import SeguidorTrayectorias, SeguimientoError
+from lastre.seguimiento import SeguidorTrayectorias
 from lastre.trayectoria import Posicion, Trayectoria
 
 
@@ -135,3 +135,20 @@ def test_serializacion_json_dict():
     assert d["cuadro_inicio"] == 10
     assert d["total_observaciones"] == 1
     assert d["posiciones"][0]["centro"] == [50, 60]
+
+
+def test_observaciones_del_cuadro_preservan_identidad_y_omiten_oclusion(config_seguimiento):
+    seguidor = SeguidorTrayectorias(config_seguimiento)
+    izquierda = Deteccion(caja=(100, 100, 40, 40), area=1600, centro=(120, 120))
+    derecha = Deteccion(caja=(300, 100, 40, 40), area=1600, centro=(320, 120))
+    seguidor.actualizar(1, [izquierda, derecha])
+    observadas = seguidor.observaciones_en_cuadro(1)
+    assert tuple(pista for pista, _ in observadas) == (1, 2)
+    assert tuple(posicion.caja for _, posicion in observadas) == (izquierda.caja, derecha.caja)
+    seguidor.actualizar(2, [derecha])
+    assert tuple(pista for pista, _ in seguidor.observaciones_en_cuadro(2)) == (2,)
+    seguidor.actualizar(3, [])
+    assert seguidor.observaciones_en_cuadro(3) == ()
+    finales = seguidor.finalizar()
+    assert observadas[0][1] == finales[0].posiciones[0]
+    assert seguidor.observaciones_en_cuadro(3) == ()

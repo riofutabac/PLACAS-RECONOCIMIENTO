@@ -1,8 +1,7 @@
 """Módulo de seguimiento temporal y asociación de detecciones entre cuadros."""
 
-from dataclasses import dataclass, field
 import math
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 from lastre.config import ZonaConfig
 from lastre.deteccion import Deteccion
@@ -74,6 +73,19 @@ class SeguidorTrayectorias:
     def hay_pistas_activas(self) -> bool:
         """Indica si algún vehículo está siendo seguido en este momento."""
         return bool(self._pistas_activas)
+
+    def observaciones_en_cuadro(
+        self, numero_cuadro: int,
+    ) -> Tuple[Tuple[int, Posicion], ...]:
+        """Expone observaciones recién asociadas, sin inventar cajas en oclusión.
+
+        Consultar después de actualizar el cuadro y antes de finalizar.
+        """
+        return tuple(
+            (pista.id, pista.observaciones[-1])
+            for pista in self._pistas_activas.values()
+            if pista.cuadro_ultimo == numero_cuadro
+        )
 
     def actualizar(
         self,

@@ -1,5 +1,10 @@
 # Code review: `codex/base-rapida-paso1` → `main`
 
+Revisión histórica, complementada por
+[la revisión ECC posterior](../../docs/testing/revision-ecc-20260914.md).
+La aprobación de software de este documento no certifica precisión empírica;
+las cifras por video extrapoladas abajo no deben describirse como medidas.
+
 **Fecha**: 2026-09-14 · **Modo**: local (no hay `gh` instalado)
 **Alcance**: 9 archivos, +798 / −61 · **Decisión**: APROBAR con comentarios
 

@@ -33,3 +33,9 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+
+# Recortes generados por las corridas de validacion: pesan decenas de MB y se
+# regeneran con los scripts. Los JSON y Excel de esas corridas si se conservan,
+# porque son la evidencia que citan los informes.
+validacion/**/*.jpg
+validacion/**/coverage*.data
