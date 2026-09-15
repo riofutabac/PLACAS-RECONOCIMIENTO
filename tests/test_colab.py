@@ -147,3 +147,19 @@ def test_el_primer_paso_muestra_el_error_real_de_un_comando():
         [c for c in notebook['cells'] if c['cell_type'] == 'code'][0]['source'])
 
     assert 'stderr' in primera
+
+
+def test_el_primer_paso_no_confia_en_que_el_entorno_exista():
+    """Un entorno a medias tiene bin/python pero no pip.
+
+    Reproducido en Colab: tras fallar `python -m venv`, quedo un .venv con
+    el ejecutable y sin pip. Comprobar que el archivo existe hacia saltar la
+    recreacion y el paso moria con 'No module named pip'.
+    """
+    raiz = Path(__file__).resolve().parents[1]
+    notebook = json.loads((raiz / 'colab/placas_lastre.ipynb').read_text())
+    primera = ''.join(
+        [c for c in notebook['cells'] if c['cell_type'] == 'code'][0]['source'])
+
+    assert 'pip', '--version' in primera
+    assert 'rmtree' in primera

@@ -25,7 +25,7 @@ Los modelos se descargan durante la preparación. La instalación usa un entorno
 Si aparece un error rojo, detente en esa celda; el mensaje indica qué revisar.
 ''')
     md('## 1. Preparar el programa y las dependencias\nPuede tardar varios minutos la primera vez. Espera a ver **PREPARACIÓN LISTA**.')
-    code('''import subprocess, sys
+    code('''import shutil, subprocess, sys
 from pathlib import Path
 
 def correr(cmd, **kw):
@@ -66,9 +66,18 @@ VERSION = correr(['git', '-C', str(REPO), 'rev-parse', 'HEAD']).stdout.strip()
 # Entorno aparte: evita que las versiones que Colab trae preinstaladas choquen
 # con las del proyecto, y asi no hace falta reiniciar el entorno.
 PYTHON = REPO / '.venv/bin/python'
-if not PYTHON.exists():
-    # El Python de Colab no trae ensurepip, asi que `python -m venv` falla con
-    # exit 1. virtualenv crea el entorno sin depender de el.
+
+def entorno_sirve():
+    \'\'\'Un entorno a medias tiene bin/python pero no pip: hay que probarlo.\'\'\'
+    if not PYTHON.exists():
+        return False
+    return subprocess.run([str(PYTHON), '-m', 'pip', '--version'],
+                          capture_output=True).returncode == 0
+
+if not entorno_sirve():
+    # El Python de Colab no trae ensurepip, asi que `python -m venv` falla y
+    # deja un .venv inservible. virtualenv no depende de ensurepip.
+    shutil.rmtree(REPO / '.venv', ignore_errors=True)
     correr([sys.executable, '-m', 'pip', 'install', '-q', 'virtualenv'])
     correr([sys.executable, '-m', 'virtualenv', '-q', str(REPO / '.venv')])
 
