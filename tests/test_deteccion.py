@@ -126,3 +126,50 @@ def test_inmutabilidad_cuadro_entrada(config_prueba):
 
     detector.detectar(cuadro)
     assert np.array_equal(cuadro, copia)
+
+
+# --- MOG2 acotado al recuadro de la zona ---------------------------------
+
+def _config_real():
+    """La zona real del peaje: su recuadro ocupa menos de la mitad del cuadro."""
+    from lastre.config import cargar_configuracion
+    return cargar_configuracion("config/zona.json")
+
+
+def test_mog2_solo_procesa_el_recuadro_de_la_zona():
+    """MOG2 no debe modelar el fondo fuera del recuadro que contiene la zona.
+
+    Los pixeles de MOG2 son independientes entre si, asi que recortar al
+    recuadro no cambia ningun resultado dentro de la zona y evita modelar
+    mas de la mitad del cuadro que la mascara descarta despues.
+    """
+    detector = DetectorMovimiento(_config_real(), factor_escala=0.25)
+
+    assert detector.dimensiones_procesadas == (559, 257)
+
+
+def test_recortar_no_altera_las_detecciones():
+    """Congela la secuencia que producia la version que procesaba todo el cuadro."""
+    import cv2
+
+    config = _config_real()
+    detector = DetectorMovimiento(config, factor_escala=0.25)
+    ancho, alto = config.dimensiones.ancho, config.dimensiones.alto
+    fondo = np.random.default_rng(7).integers(90, 110, (alto, ancho, 3), dtype=np.uint8)
+
+    obtenidas = {}
+    for i in range(12):
+        cuadro = fondo.copy()
+        if i >= 8:
+            x = 900 + (i - 8) * 160
+            cv2.rectangle(cuadro, (x, 1000), (x + 420, 1300), (240, 240, 240), -1)
+        detecciones = detector.detectar(cuadro)
+        if detecciones:
+            obtenidas[i] = tuple((d.caja, d.area) for d in detecciones)
+
+    assert obtenidas == {
+        8: (((900, 1000, 420, 300), 123136),),
+        9: (((1320, 1000, 160, 300), 46176),),
+        10: (((1320, 1000, 320, 300), 93536),),
+        11: (((1480, 1000, 320, 300), 93536),),
+    }

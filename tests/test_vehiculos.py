@@ -324,3 +324,54 @@ def test_paso_movimiento_invalido(config_zona):
     from lastre.vehiculos import DetectorHibrido
     with pytest.raises(VehiculoDeteccionError, match="paso_movimiento"):
         DetectorHibrido(_MovimientoFalso([True]), _detector(config_zona, []), paso_movimiento=0)
+
+
+# --- Reparto del tiempo dentro del detector hibrido ----------------------
+
+class _MovimientoSiempre:
+    def detectar(self, cuadro):
+        return True
+
+
+class _VehiculosVacio:
+    def detectar(self, cuadro):
+        return ()
+
+
+def test_el_hibrido_separa_movimiento_de_inferencia():
+    """El informe agrupaba ambas etapas y ocultaba cual costaba el tiempo.
+
+    Sin separarlas no se puede decidir si conviene aliviar el filtro barato
+    o el modelo: una llamada al hibrido no es una inferencia.
+    """
+    import numpy as np
+    from lastre.medicion import Medidor
+    from lastre.vehiculos import DetectorHibrido
+
+    medidor = Medidor()
+    detector = DetectorHibrido(
+        _MovimientoSiempre(), _VehiculosVacio(), paso=1, medidor=medidor)
+
+    detector.detectar(np.zeros((4, 4, 3), dtype=np.uint8))
+
+    assert set(medidor.etapas) == {"filtro de movimiento", "modelo de vehiculos"}
+
+
+def test_el_filtro_se_mide_aunque_no_haya_movimiento():
+    """Los cuadros que el filtro descarta son la mayoria: deben contarse."""
+    import numpy as np
+    from lastre.medicion import Medidor
+    from lastre.vehiculos import DetectorHibrido
+
+    class _MovimientoNunca:
+        def detectar(self, cuadro):
+            return False
+
+    medidor = Medidor()
+    detector = DetectorHibrido(
+        _MovimientoNunca(), _VehiculosVacio(), paso=1, medidor=medidor)
+
+    detector.detectar(np.zeros((4, 4, 3), dtype=np.uint8))
+
+    assert medidor.etapas["filtro de movimiento"].llamadas == 1
+    assert "modelo de vehiculos" not in medidor.etapas
