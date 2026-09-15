@@ -23,7 +23,8 @@ import cv2
 from lastre.config import cargar_configuracion, ConfiguracionError
 from lastre.deduplicacion import deduplicar_por_placa
 from lastre.lectura import Lectura, consolidar_lecturas
-from lastre.placa import LectorPlacas, PlacaError
+from lastre.placa import LectorPlacas, PlacaError, recortar_vehiculo
+from lastre.agenda import construir_agenda, ultimo_cuadro_necesario
 from lastre.registro import registrar_vehiculos
 from lastre.trayectoria import Posicion, Trayectoria
 from lastre.video import iterar_cuadros, VideoLecturaError
@@ -129,18 +130,13 @@ def main():
     print("=" * 70)
     print(f"Vehículos a procesar: {len(vehiculos)}")
 
-    # Mapa de cuadro -> lista de (vehiculo, caja) para saber dónde recortar
-    por_cuadro = {}
-    for indice, vehiculo in enumerate(vehiculos):
-        # Solo las observaciones propias del vehiculo. Asociar por contencion
-        # temporal le entregaba las de cualquier otro que pasara entretanto.
-        for posicion in vehiculo.posiciones:
-            if posicion.area < AREA_MINIMA_PARA_LEER:
-                continue
-            por_cuadro.setdefault(posicion.cuadro, []).append((indice, posicion.caja))
+    # Qué observación recortar en cada cuadro. Solo las propias de cada
+    # vehículo: asociar por contención temporal le entregaba las de cualquier
+    # otro que pasara entretanto.
+    agenda = construir_agenda(vehiculos, AREA_MINIMA_PARA_LEER)
 
-    total_recortes = sum(len(v) for v in por_cuadro.values())
-    print(f"Cuadros a analizar: {len(por_cuadro)} ({total_recortes} recortes)")
+    total_recortes = sum(len(v) for v in agenda.values())
+    print(f"Cuadros a analizar: {len(agenda)} ({total_recortes} recortes)")
 
     try:
         lector = LectorPlacas()
@@ -149,29 +145,46 @@ def main():
         sys.exit(1)
 
     lecturas_por_vehiculo = {i: [] for i in range(len(vehiculos))}
-    ultimo_cuadro = max(por_cuadro) if por_cuadro else 0
+    # La evidencia de cada vehículo, para los que no dejen ninguna lectura.
+    evidencia_por_vehiculo = {}
+    ultimo_cuadro = ultimo_cuadro_necesario(agenda)
     t0 = time.time()
     analizados = 0
 
     try:
         for numero, cuadro in iterar_cuadros(args.video, hasta_cuadro=ultimo_cuadro):
-            pendientes = por_cuadro.get(numero)
+            pendientes = agenda.get(numero)
             if not pendientes:
                 continue
 
-            for indice, caja in pendientes:
+            for tarea in pendientes:
+                nombre = f"v{tarea.indice + 1:02d}_f{numero}.jpg"
+
+                # El recorte de la evidencia se guarda sin esperar al OCR: un
+                # vehículo sin placa legible sigue necesitando su foto.
+                if tarea.es_evidencia:
+                    try:
+                        recorte = recortar_vehiculo(cuadro, tarea.caja)
+                    except PlacaError:
+                        pass
+                    else:
+                        cv2.imwrite(str(dir_recortes / nombre), recorte,
+                                    [cv2.IMWRITE_JPEG_QUALITY, 95])
+                        evidencia_por_vehiculo[tarea.indice] = f"placas/{nombre}"
+
+                if not tarea.es_candidato:
+                    continue
+
                 analizados += 1
                 try:
-                    encontradas = lector.leer_vehiculo(cuadro, caja)
+                    encontradas = lector.leer_vehiculo(cuadro, tarea.caja)
                 except PlacaError:
                     continue
 
                 for encontrada in encontradas:
-                    nombre = f"v{indice + 1:02d}_f{numero}.jpg"
-                    x, y, ancho, alto = caja
-                    recorte = cuadro[y:y + alto, x:x + ancho]
+                    recorte = recortar_vehiculo(cuadro, tarea.caja)
                     cv2.imwrite(str(dir_recortes / nombre), recorte, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                    lecturas_por_vehiculo[indice].append(
+                    lecturas_por_vehiculo[tarea.indice].append(
                         Lectura(
                             cuadro=numero,
                             texto=encontrada.texto,
@@ -200,7 +213,7 @@ def main():
             "confianza_minima": resultado.confianza_minima,
             "lecturas": resultado.lecturas_coincidentes,
             "estado": resultado.estado,
-            "imagen": resultado.imagen_recorte,
+            "imagen": resultado.imagen_recorte or evidencia_por_vehiculo.get(indice, ""),
         })
 
     # Un mismo vehículo puede quedar registrado dos veces cuando el seguimiento

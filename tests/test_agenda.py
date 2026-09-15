@@ -115,3 +115,34 @@ def test_area_minima_negativa_se_rechaza():
     """Un umbral inválido debe fallar de entrada."""
     with pytest.raises(AgendaError):
         construir_agenda((), -1)
+
+
+def test_la_observacion_representativa_queda_marcada_como_evidencia():
+    """Un candidato puede fallar el OCR y el vehículo quedarse sin foto.
+
+    Marcar la representativa como evidencia, aunque también sea candidata,
+    permite guardar su recorte sin depender de que la lectura prospere.
+    """
+    xs = list(range(1300, 1300 + 20 * 60, 60))
+    vehiculos = _vehiculos(_trayectoria(1, xs, areas=[90000] * 20))
+
+    agenda = construir_agenda(vehiculos, AREA_MINIMA)
+    representativo = vehiculos[0].cuadro_representativo
+
+    evidencias = [t for tareas in agenda.values() for t in tareas if t.es_evidencia]
+    assert len(evidencias) == 1
+    assert evidencias[0].cuadro == representativo
+    assert evidencias[0].es_candidato is True
+
+
+def test_cada_vehiculo_tiene_exactamente_una_evidencia():
+    """Ni un vehículo sin foto ni dos fotos compitiendo por la misma celda."""
+    grandes = [90000] * 20
+    uno = _trayectoria(1, list(range(1300, 1300 + 20 * 60, 60)), areas=grandes)
+    otro = _trayectoria(2, list(range(400, 400 + 20 * 60, 60)), areas=[1000] * 20)
+    vehiculos = _vehiculos(uno, otro)
+
+    agenda = construir_agenda(vehiculos, AREA_MINIMA)
+
+    evidencias = [t for tareas in agenda.values() for t in tareas if t.es_evidencia]
+    assert sorted(t.indice for t in evidencias) == [0, 1]
