@@ -111,11 +111,57 @@ def test_motocicleta_se_marca_con_su_tipo(config_zona, cuadro):
 
 def test_todas_las_clases_de_vehiculo_se_aceptan(config_zona, cuadro):
     """Automóvil, motocicleta, bus y camión son vehículos de interés."""
-    crudas = [_Cruda(c, 0.9, _caja_centrada_en(DENTRO)) for c in sorted(CLASES_VEHICULO)]
+    crudas = [
+        _Cruda(c, 0.9, _caja_centrada_en(DENTRO, ancho=200 + i))
+        for i, c in enumerate(sorted(CLASES_VEHICULO))
+    ]
 
     resultado = _detector(config_zona, crudas).detectar(cuadro)
 
     assert len(resultado) == len(CLASES_VEHICULO)
+
+
+@pytest.mark.parametrize("invertir", [False, True])
+@pytest.mark.parametrize("clase_menor", ["truck", "bus"])
+def test_caja_identica_conserva_mayor_confianza_y_clase(config_zona, cuadro, invertir, clase_menor):
+    caja = _caja_centrada_en(DENTRO)
+    crudas = [_Cruda("bus", 0.604, caja), _Cruda(clase_menor, 0.582, caja)]
+    if invertir:
+        crudas.reverse()
+    resultado = _detector(config_zona, crudas).detectar(cuadro)
+    assert len(resultado) == 1
+    assert resultado[0].clase == "bus"
+    assert resultado[0].confianza == 0.604
+
+
+def test_caja_identica_empate_conserva_primera(config_zona, cuadro):
+    caja = _caja_centrada_en(DENTRO)
+    resultado = _detector(config_zona, [
+        _Cruda("truck", 0.6, caja), _Cruda("bus", 0.6, caja),
+    ]).detectar(cuadro)
+    assert len(resultado) == 1
+    assert resultado[0].clase == "truck"
+
+
+def test_cajas_casi_identicas_se_conservan(config_zona, cuadro):
+    resultado = _detector(config_zona, [
+        _Cruda("bus", 0.604, _caja_centrada_en(DENTRO)),
+        _Cruda("truck", 0.582, _caja_centrada_en((1401, 1400))),
+    ]).detectar(cuadro)
+    assert len(resultado) == 2
+
+
+def test_caja_duplicada_no_siembra_segunda_trayectoria(config_zona, cuadro):
+    from lastre.seguimiento import SeguidorTrayectorias
+
+    seguidor = SeguidorTrayectorias(config_zona)
+    for numero in range(1, 31):
+        caja = _caja_centrada_en((1400 + numero, 1400))
+        detecciones = _detector(config_zona, [
+            _Cruda("bus", 0.604, caja), _Cruda("truck", 0.582, caja),
+        ]).detectar(cuadro)
+        seguidor.actualizar(numero, [d.como_deteccion for d in detecciones])
+    assert len(seguidor.finalizar()) == 1
 
 
 def test_vista_compatible_con_el_seguimiento(config_zona, cuadro):
