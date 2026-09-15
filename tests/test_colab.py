@@ -163,3 +163,35 @@ def test_el_primer_paso_no_confia_en_que_el_entorno_exista():
 
     assert 'pip', '--version' in primera
     assert 'rmtree' in primera
+
+
+def test_el_paso_dos_acepta_unidades_compartidas():
+    """Los videos pueden vivir en una unidad compartida, no solo en MyDrive.
+
+    La comprobacion existe para no escribir fuera de Drive, en el disco
+    efimero de Colab. /content/drive ya garantiza eso.
+    """
+    raiz = Path(__file__).resolve().parents[1]
+    notebook = json.loads((raiz / 'colab/placas_lastre.ipynb').read_text())
+    segunda = ''.join(
+        [c for c in notebook['cells'] if c['cell_type'] == 'code'][1]['source'])
+
+    assert "'/content/drive'" in segunda
+    assert "'/content/drive/MyDrive'" not in segunda
+
+
+def test_el_paso_dos_acepta_un_acceso_directo_de_drive():
+    """Un acceso directo se ve en MyDrive pero resuelve fuera de el.
+
+    Google Drive lo materializa en /content/drive/.shortcut-targets-by-id/<id>,
+    asi que exigir MyDrive tras .resolve() rechaza carpetas compartidas validas
+    que el usuario ve perfectamente en su unidad. Reproducido en Colab con una
+    carpeta compartida que el cuaderno anterior si aceptaba.
+    """
+    raiz = Path(__file__).resolve().parents[1]
+    notebook = json.loads((raiz / 'colab/placas_lastre.ipynb').read_text())
+    segunda = ''.join(
+        [c for c in notebook['cells'] if c['cell_type'] == 'code'][1]['source'])
+
+    assert "'/content/drive/MyDrive'" not in segunda
+    assert "'/content/drive'" in segunda

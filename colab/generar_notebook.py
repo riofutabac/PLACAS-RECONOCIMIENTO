@@ -109,9 +109,14 @@ CARPETA_INFORMES = '/content/drive/MyDrive/informe_lastre' #@param {type:"string
 spec = spec_from_file_location('flujo_colab', REPO / 'colab/ejecucion.py')
 flujo = module_from_spec(spec)
 spec.loader.exec_module(flujo)
+# Basta con que este dentro de Drive: MyDrive, una unidad compartida o un
+# acceso directo. Lo que se evita es escribir en el disco efimero de Colab,
+# que se pierde al cerrar la sesion.
 for ruta in (CARPETA_VIDEOS, CARPETA_INFORMES):
-    if not Path(ruta).resolve().is_relative_to(Path('/content/drive/MyDrive').resolve()):
-        raise ValueError('Usa carpetas dentro de /content/drive/MyDrive; añade allí el acceso directo si te compartieron los videos.')
+    if not Path(ruta).resolve().is_relative_to(Path('/content/drive').resolve()):
+        raise ValueError('Usa carpetas dentro de /content/drive. Revisa la ruta con: !ls /content/drive')
+if not Path(CARPETA_VIDEOS).exists():
+    raise ValueError('No existe ' + CARPETA_VIDEOS + '. Mira que hay con: !ls \'' + str(Path(CARPETA_VIDEOS).parent) + '\'')
 VIDEOS = flujo.listar_videos(CARPETA_VIDEOS)
 SALIDA = flujo.preparar_salida(CARPETA_INFORMES, VIDEOS, VERSION, 'gpu')
 print('Videos encontrados:', len(VIDEOS))
