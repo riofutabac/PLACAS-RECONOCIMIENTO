@@ -176,3 +176,33 @@ def test_verificar_sesiones_sin_modelos_se_rechaza():
 
     with pytest.raises(AceleracionError):
         verificar_sesiones({}, "gpu")
+
+
+# --- Carga previa de las bibliotecas CUDA -----------------------------------
+
+class _OrtFalso:
+    def __init__(self, con_preload=True):
+        self.llamadas = []
+        if con_preload:
+            self.preload_dlls = lambda **kw: self.llamadas.append(kw)
+
+
+def test_prepara_las_bibliotecas_cuda_antes_de_abrir_sesiones():
+    """onnxruntime-gpu trae CUDA como wheels de pip y hay que cargarlas.
+
+    Sin preload_dlls la sesion no encuentra libcublas ni libcudnn y cae a
+    procesador sin aviso, aunque CUDAExecutionProvider figure como disponible.
+    Reproducido en Colab: el diagnostico daba GPU y el lote daba CPU.
+    """
+    from lastre.aceleracion import preparar_bibliotecas_gpu
+
+    ort = _OrtFalso()
+    assert preparar_bibliotecas_gpu(ort) is True
+    assert ort.llamadas == [{'directory': ''}]
+
+
+def test_una_version_sin_preload_no_rompe_el_lote():
+    """onnxruntime antiguo no expone preload_dlls: se informa, no se falla."""
+    from lastre.aceleracion import preparar_bibliotecas_gpu
+
+    assert preparar_bibliotecas_gpu(_OrtFalso(con_preload=False)) is False

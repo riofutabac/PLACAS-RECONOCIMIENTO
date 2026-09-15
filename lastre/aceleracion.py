@@ -142,3 +142,28 @@ def verificar_sesiones(modelos: dict, modo: str) -> Tuple[bool, Tuple[str, ...]]
             todo_bien = False
 
     return todo_bien, tuple(informes)
+
+
+def preparar_bibliotecas_gpu(modulo=None) -> bool:
+    """Carga las bibliotecas CUDA que onnxruntime-gpu instala como wheels.
+
+    Desde onnxruntime 1.21 las bibliotecas de NVIDIA llegan por pip y no por
+    el sistema, asi que hay que anunciarlas antes de abrir cualquier sesion.
+    Sin esto la sesion no encuentra libcublas ni libcudnn y cae a procesador
+    en silencio, aunque `CUDAExecutionProvider` figure entre los disponibles.
+
+    Devuelve si la carga se realizo. Una version que no lo soporte no es un
+    error: simplemente no hay nada que precargar.
+    """
+    if modulo is None:
+        try:
+            import onnxruntime as modulo
+        except ImportError as exc:  # pragma: no cover - depende del entorno
+            raise AceleracionError("onnxruntime no esta instalado") from exc
+
+    preload = getattr(modulo, "preload_dlls", None)
+    if preload is None:
+        return False
+
+    preload(directory="")
+    return True

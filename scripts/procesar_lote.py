@@ -19,7 +19,7 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from lastre.aceleracion import (AceleracionError, describir, elegir_proveedores,
-                                verificar_sesiones)
+                                preparar_bibliotecas_gpu, verificar_sesiones)
 from lastre.checkpoint import Checkpoint
 from lastre.config import cargar_configuracion, ConfiguracionError
 from lastre.deduplicacion import deduplicar_por_placa
@@ -361,6 +361,15 @@ def main():
         plantillas_reloj = None
         print(f"Aviso: {err}", file=sys.stderr)
         print("Los registros quedaran sin hora real.", file=sys.stderr)
+
+    # Antes de abrir cualquier sesion: onnxruntime-gpu trae CUDA como wheels de
+    # pip y sin anunciarlas la sesion cae a procesador sin decir nada.
+    if args.acelerador != "cpu":
+        try:
+            preparar_bibliotecas_gpu()
+        except AceleracionError as err:
+            print(f"Error de aceleracion: {err}", file=sys.stderr)
+            sys.exit(1)
 
     try:
         lector = LectorPlacas(proveedores=proveedores)
