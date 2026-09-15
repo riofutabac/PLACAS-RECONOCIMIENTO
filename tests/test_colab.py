@@ -195,3 +195,14 @@ def test_el_paso_dos_acepta_un_acceso_directo_de_drive():
 
     assert "'/content/drive/MyDrive'" not in segunda
     assert "'/content/drive'" in segunda
+
+
+def test_el_paso_dos_filtra_solo_por_nombre_exacto():
+    """Evita que '*60*' seleccione por accidente un minuto u hora del nombre."""
+    raiz = Path(__file__).resolve().parents[1]
+    notebook = json.loads((raiz / 'colab/placas_lastre.ipynb').read_text())
+    segunda = ''.join(
+        [c for c in notebook['cells'] if c['cell_type'] == 'code'][1]['source'])
+
+    assert 'VIDEO_PRUEBA' in segunda
+    assert 'v.name == VIDEO_PRUEBA' in segunda

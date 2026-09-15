@@ -105,6 +105,9 @@ from importlib.util import spec_from_file_location, module_from_spec
 drive.mount('/content/drive')
 CARPETA_VIDEOS = '/content/drive/MyDrive/Cam PL' #@param {type:"string"}
 CARPETA_INFORMES = '/content/drive/MyDrive/informe_lastre' #@param {type:"string"}
+# Para probar un archivo concreto, pega aquí su nombre COMPLETO, tal como se
+# imprime abajo. Déjalo vacío para procesar todos los videos de la carpeta.
+VIDEO_PRUEBA = '' #@param {type:"string"}
 
 spec = spec_from_file_location('flujo_colab', REPO / 'colab/ejecucion.py')
 flujo = module_from_spec(spec)
@@ -117,13 +120,19 @@ for ruta in (CARPETA_VIDEOS, CARPETA_INFORMES):
         raise ValueError('Usa carpetas dentro de /content/drive. Revisa la ruta con: !ls /content/drive')
 if not Path(CARPETA_VIDEOS).exists():
     raise ValueError(f'No existe: {CARPETA_VIDEOS}  --  listala con: !ls /content/drive/MyDrive')
-VIDEOS = flujo.listar_videos(CARPETA_VIDEOS)
+todos_los_videos = flujo.listar_videos(CARPETA_VIDEOS)
+if VIDEO_PRUEBA:
+    VIDEOS = [v for v in todos_los_videos if v.name == VIDEO_PRUEBA]
+    if not VIDEOS:
+        raise ValueError('VIDEO_PRUEBA debe coincidir exactamente con uno de los nombres listados.')
+else:
+    VIDEOS = todos_los_videos
 SALIDA = flujo.preparar_salida(CARPETA_INFORMES, VIDEOS, VERSION, 'gpu')
-print('Videos encontrados:', len(VIDEOS))
+print('Videos seleccionados:', len(VIDEOS), 'de', len(todos_los_videos))
 print('Ya terminados en esta ejecución:', len(flujo.leer_avance(SALIDA)))
 print('Resultados:', SALIDA)
-for video in VIDEOS[:5]:
-    print(' •', video.name)
+for indice, video in enumerate(todos_los_videos):
+    print(f' [{indice:02d}] {video.name}')
 ''')
     md('## 3. Comprobar los modelos y la GPU\nEsta comprobación carga los modelos reales. Si alguno queda en CPU, se detiene antes del lote. Espera a ver **GPU LISTA**.')
     code('''GPU_LISTA = False
