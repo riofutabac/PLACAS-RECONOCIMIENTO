@@ -165,3 +165,70 @@ def test_parametros_de_fusion_invalidos():
 
     with pytest.raises(RegistroError, match="distancia_maxima"):
         fusionar_continuaciones([], 60, -1)
+
+
+# --- Posiciones propias de cada vehículo (plan: paso 1) ---------------------
+
+def test_vehiculo_expone_sus_propias_posiciones():
+    """El registro conserva las observaciones que lo componen.
+
+    Sin este dato el consumidor debe reconstruirlas por intervalo de cuadros,
+    que es precisamente lo que mezclaba vehículos distintos.
+    """
+    trayectoria = _trayectoria(1, list(range(1300, 1300 + 20 * 60, 60)))
+
+    registro = registrar_vehiculos(
+        [trayectoria], OBSERVACIONES_MINIMAS, DESPLAZAMIENTO_MINIMO
+    )[0]
+
+    assert registro.posiciones == trayectoria.posiciones
+
+
+def test_vehiculo_no_recibe_posiciones_de_otro_contenido_en_su_intervalo():
+    """Un vehículo que pasa mientras otro sigue en la zona no le presta su placa.
+
+    Es el fallo reproducido en el diagnóstico: A ocupa los cuadros 100-159 y B
+    los 120-139, así que B queda contenido en el intervalo de A. Asociar por
+    contención temporal le entregaba a A las observaciones de B.
+    """
+    largo = _trayectoria(1, list(range(1300, 1300 + 60 * 20, 20)), cuadro_inicio=100)
+    breve = _trayectoria(2, list(range(400, 400 + 20 * 30, 30)), cuadro_inicio=120)
+
+    registros = registrar_vehiculos(
+        [largo, breve], OBSERVACIONES_MINIMAS, DESPLAZAMIENTO_MINIMO
+    )
+
+    por_id = {r.trayectoria_id: r for r in registros}
+    assert set(por_id) == {1, 2}
+    assert por_id[1].posiciones == largo.posiciones
+    assert por_id[2].posiciones == breve.posiciones
+
+
+def test_posiciones_de_una_continuacion_se_unen_en_orden_de_cuadro():
+    """Cuando el seguimiento reabre una pista, el vehículo conserva ambas partes."""
+    antes = _trayectoria(1, list(range(1300, 1300 + 12 * 40, 40)), cuadro_inicio=100)
+    despues = _trayectoria(2, list(range(1780, 1780 + 12 * 40, 40)), cuadro_inicio=120)
+
+    registros = registrar_vehiculos(
+        [antes, despues], OBSERVACIONES_MINIMAS, DESPLAZAMIENTO_MINIMO
+    )
+
+    assert len(registros) == 1
+    posiciones = registros[0].posiciones
+    assert posiciones == antes.posiciones + despues.posiciones
+    assert [p.cuadro for p in posiciones] == sorted(p.cuadro for p in posiciones)
+
+
+def test_el_cuadro_representativo_pertenece_a_las_posiciones_del_vehiculo():
+    """La evidencia de un vehículo sale de una observación suya, no de otro."""
+    areas = [1000] * 9 + [90000] + [1000] * 10
+    trayectoria = _trayectoria(
+        1, list(range(1300, 1300 + 20 * 60, 60)), areas=areas
+    )
+
+    registro = registrar_vehiculos(
+        [trayectoria], OBSERVACIONES_MINIMAS, DESPLAZAMIENTO_MINIMO
+    )[0]
+
+    cuadros = {p.cuadro for p in registro.posiciones}
+    assert registro.cuadro_representativo in cuadros
