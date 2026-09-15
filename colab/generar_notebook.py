@@ -116,7 +116,7 @@ for ruta in (CARPETA_VIDEOS, CARPETA_INFORMES):
     if not Path(ruta).resolve().is_relative_to(Path('/content/drive').resolve()):
         raise ValueError('Usa carpetas dentro de /content/drive. Revisa la ruta con: !ls /content/drive')
 if not Path(CARPETA_VIDEOS).exists():
-    raise ValueError('No existe ' + CARPETA_VIDEOS + '. Mira que hay con: !ls \'' + str(Path(CARPETA_VIDEOS).parent) + '\'')
+    raise ValueError(f'No existe: {CARPETA_VIDEOS}  --  listala con: !ls /content/drive/MyDrive')
 VIDEOS = flujo.listar_videos(CARPETA_VIDEOS)
 SALIDA = flujo.preparar_salida(CARPETA_INFORMES, VIDEOS, VERSION, 'gpu')
 print('Videos encontrados:', len(VIDEOS))
