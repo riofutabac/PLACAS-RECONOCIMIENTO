@@ -1,0 +1,24 @@
+
+=======================================================
+DIAGNÓSTICO: Camara Placas 2_20260909105651-20260909163038(61).mp4
+Rango de cuadros: 5108 a 5108
+=======================================================
+Cuadros cargados: 1
+INFO:open_image_models.detection.core.yolo_v9.inference:Using ONNX Runtime with ['CPUExecutionProvider'] provider(s)
+
+--- Analizando modelo: rf-detr-nano-384-coco ---
+INFO:open_image_models.detection.core.rf_detr.inference:Using ONNX Runtime with ['CPUExecutionProvider'] provider(s)
+Total detecciones en zona: 1
+Cuadros con detecciones: 1
+Trayectorias totales: 1
+  Trayectoria 1: cuadros 5108-5108, observaciones: 1
+Vehículos registrados (>=10 obs): 0
+  f5108: [{'clase': 'motorcycle', 'conf': 0.842, 'caja': (1509, 1006, 373, 329), 'area': 122717, 'centro': (1695, 1170), 'ocr': [('M25872', 0.629)], 'ocr_por_margen': {'0.10': [('M25872', 0.629)], '0.15': [('M25132', 0.701)], '0.20': []}}]
+
+--- Analizando modelo: yolo26n ---
+Total detecciones en zona: 1
+Cuadros con detecciones: 1
+Trayectorias totales: 1
+  Trayectoria 1: cuadros 5108-5108, observaciones: 1
+Vehículos registrados (>=10 obs): 0
+  f5108: [{'clase': 'motorcycle', 'conf': 0.657, 'caja': (1512, 1050, 375, 287), 'area': 107625, 'centro': (1699, 1193), 'ocr': [], 'ocr_por_margen': {'0.10': [], '0.15': [], '0.20': [('M25182', 0.692)]}}]

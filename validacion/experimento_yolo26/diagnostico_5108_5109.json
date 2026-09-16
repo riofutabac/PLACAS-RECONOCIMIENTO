@@ -1,0 +1,94 @@
+{
+  "alcance": "Modelo en todos los cuadros; no reproduce MOG2 ni paso=3 del video completo",
+  "calidad_jpeg": 92,
+  "resultados": {
+    "rf-detr-nano-384-coco": {
+      "detecciones": {
+        "5108": [
+          {
+            "clase": "motorcycle",
+            "conf": 0.842,
+            "caja": [
+              1509,
+              1006,
+              373,
+              329
+            ],
+            "area": 122717,
+            "centro": [
+              1695,
+              1170
+            ],
+            "ocr": [
+              [
+                "M25872",
+                0.629
+              ]
+            ],
+            "ocr_por_margen": {
+              "0.10": [
+                [
+                  "M25872",
+                  0.629
+                ]
+              ],
+              "0.15": [
+                [
+                  "M25132",
+                  0.701
+                ]
+              ],
+              "0.20": []
+            }
+          }
+        ]
+      },
+      "trayectorias": [
+        {
+          "id": 1,
+          "observaciones": 1
+        }
+      ],
+      "vehiculos_segmento": 0
+    },
+    "yolo26n": {
+      "detecciones": {
+        "5108": [
+          {
+            "clase": "motorcycle",
+            "conf": 0.657,
+            "caja": [
+              1512,
+              1050,
+              375,
+              287
+            ],
+            "area": 107625,
+            "centro": [
+              1699,
+              1193
+            ],
+            "ocr": [],
+            "ocr_por_margen": {
+              "0.10": [],
+              "0.15": [],
+              "0.20": [
+                [
+                  "M25182",
+                  0.692
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "trayectorias": [
+        {
+          "id": 1,
+          "observaciones": 1
+        }
+      ],
+      "vehiculos_segmento": 0
+    }
+  }
+}

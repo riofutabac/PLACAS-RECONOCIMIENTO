@@ -1,0 +1,22 @@
+{
+  "ronda": "ronda_1",
+  "version": "actual",
+  "commit": "cb876a8",
+  "directorio_salida": "/Users/desarrollopashq/Documents/GitHub/PlacasVideos/validacion/comparacion_antes_despues/ronda_1_actual",
+  "tiempo_total_segundos": 838.534,
+  "tiempo_real_segundos": 838.54,
+  "tiempo_usuario_segundos": 1436.59,
+  "tiempo_sistema_segundos": 65.93,
+  "pico_rss_mb": 597.97,
+  "pico_rss_bytes": 627019776,
+  "codigo_salida": 0,
+  "cuadros_analizados": 0,
+  "vehiculos_totales": 0,
+  "excel_existe": true,
+  "excel_tamano_bytes": 1731371,
+  "desglose_etapas": {},
+  "vehiculos_por_video": {},
+  "errores": [
+    "Error parseando avance.json: 'int' object has no attribute 'get'"
+  ]
+}

@@ -44,3 +44,8 @@ validacion/**/coverage*.data
 .worktree_*/
 conjunto_evaluacion/
 
+# Modelos y pesos binarios
+*.onnx
+*.pt
+modelos/*.onnx
+

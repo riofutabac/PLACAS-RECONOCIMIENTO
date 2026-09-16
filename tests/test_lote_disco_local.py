@@ -128,6 +128,10 @@ def test_reanudacion_omite_videos_ya_hechos(tmp_path, monkeypatch):
     # v1 ya está en avance.json
     avance_inicial = {
         "version": 1,
+        "manifiesto": {"modelo_vehiculos": "rf-detr-nano-384-coco",
+                       "confianza_minima": .5, "tamano_entrada": [384, 384],
+                       "paso": 3, "paso_movimiento": 1, "escala_movimiento": .25,
+                       "observaciones_minimas": 10, "umbral_ocr": .75, "minimo_lecturas": 2},
         "videos": {
             v1.name: {"filas": [], "cuadros": 100}
         }

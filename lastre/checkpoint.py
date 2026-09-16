@@ -7,7 +7,7 @@ listo convierte una desconexión en una pausa, no en la pérdida del trabajo.
 
 import json
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 
 class CheckpointError(ValueError):
@@ -21,13 +21,15 @@ VERSION = 1
 class Checkpoint:
     """Registro en disco de los videos ya procesados y sus resultados."""
 
-    def __init__(self, directorio) -> None:
+    def __init__(self, directorio, manifiesto: Optional[dict] = None) -> None:
         self._ruta = Path(directorio) / NOMBRE_ARCHIVO
-        self._datos: Dict[str, dict] = {"version": VERSION, "videos": {}}
+        self._datos: Dict[str, Any] = {"version": VERSION, "videos": {}}
+        if manifiesto:
+            self._datos["manifiesto"] = dict(manifiesto)
         if self._ruta.is_file():
-            self._cargar()
+            self._cargar(manifiesto)
 
-    def _cargar(self) -> None:
+    def _cargar(self, manifiesto_esperado: Optional[dict] = None) -> None:
         """Lee el avance previo, tolerando un archivo truncado por un corte."""
         try:
             with self._ruta.open(encoding="utf-8") as f:
@@ -37,7 +39,33 @@ class Checkpoint:
             # prefiere empezar de nuevo antes que trabajar con datos corruptos.
             return
         if isinstance(datos, dict) and isinstance(datos.get("videos"), dict):
+            guardado = datos.get("manifiesto")
+            if manifiesto_esperado and manifiesto_esperado.get("modelo_vehiculos"):
+                if not guardado or not guardado.get("modelo_vehiculos"):
+                    raise CheckpointError(
+                        f"Conflicto en checkpoint: el avance guardado en '{self._ruta}' no tiene "
+                        f"manifiesto de identidad de modelo, pero la corrida actual requiere "
+                        f"'{manifiesto_esperado.get('modelo_vehiculos')}'. "
+                        "Para evitar mezclar resultados de distintos modelos, use otra carpeta de salida o la opción --reiniciar."
+                    )
+            if manifiesto_esperado and guardado:
+                for campo in manifiesto_esperado:
+                    val_esp = manifiesto_esperado.get(campo)
+                    val_guar = guardado.get(campo)
+                    if val_esp != val_guar:
+                        raise CheckpointError(
+                            f"Conflicto en checkpoint: el avance guardado usa {campo}='{val_guar}', "
+                            f"pero la corrida actual solicita '{val_esp}'. "
+                            "Use otra carpeta de salida o la opción --reiniciar."
+                        )
             self._datos = datos
+            if manifiesto_esperado and "manifiesto" not in self._datos:
+                self._datos["manifiesto"] = dict(manifiesto_esperado)
+
+    @property
+    def manifiesto(self) -> dict:
+        """Manifiesto de configuración de la corrida que generó el checkpoint."""
+        return dict(self._datos.get("manifiesto", {}))
 
     @property
     def ruta(self) -> Path:

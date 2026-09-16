@@ -1,0 +1,199 @@
+{
+  "ronda": "1",
+  "modelo": "yolo26n",
+  "directorio_salida": "validacion/experimento_yolo26/ronda_1_yolo26n",
+  "tiempo_total_segundos": 848.359,
+  "tiempo_real_segundos": 848.37,
+  "tiempo_usuario_segundos": 1027.9,
+  "tiempo_sistema_segundos": 80.47,
+  "pico_rss_mb": 542.01,
+  "pico_rss_bytes": 568336384,
+  "codigo_salida": 0,
+  "cuadros_analizados": 16454,
+  "vehiculos_totales": 8,
+  "excel_existe": true,
+  "excel_tamano_bytes": 1690372,
+  "desglose_etapas": {
+    "decodificar video": {
+      "segundos": 433.4,
+      "porcentaje": 51.3,
+      "llamadas": 16452,
+      "ms_llamada": 26.3
+    },
+    "filtro de movimiento": {
+      "segundos": 411.4,
+      "porcentaje": 48.7,
+      "llamadas": 16452,
+      "ms_llamada": 25.0
+    },
+    "modelo de vehiculos": {
+      "segundos": 237.4,
+      "porcentaje": 28.1,
+      "llamadas": 831,
+      "ms_llamada": 285.6
+    },
+    "leer placa": {
+      "segundos": 49.2,
+      "porcentaje": 5.8,
+      "llamadas": 438,
+      "ms_llamada": 112.2
+    },
+    "guardar recortes": {
+      "segundos": 16.8,
+      "porcentaje": 2.0,
+      "llamadas": 472,
+      "ms_llamada": 35.7
+    },
+    "seguimiento": {
+      "segundos": 0.5,
+      "porcentaje": 0.1,
+      "llamadas": 16452,
+      "ms_llamada": 0.0
+    },
+    "leer reloj": {
+      "segundos": 0.0,
+      "porcentaje": 0.0,
+      "llamadas": 2,
+      "ms_llamada": 10.5
+    },
+    "sin atribuir": {
+      "segundos": 0.0,
+      "porcentaje": 0.0
+    },
+    "solapado entre etapas": {
+      "segundos": 303.7,
+      "porcentaje": 35.9
+    },
+    "TOTAL": {
+      "segundos": 845.0
+    }
+  },
+  "vehiculos_por_video": {
+    "Camara Placas 2_20260909105651-20260909163038(60).mp4": [
+      {
+        "trayectoria_id": 1,
+        "placa": "PCM7497",
+        "hora_paso": "2026-09-09 16:17:46",
+        "tiempo_video": "00:30",
+        "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+        "tipo_vehiculo": "automovil",
+        "sentido": "sale",
+        "confianza": 0.927,
+        "consenso": 0.228,
+        "lecturas": 9,
+        "estado": "pendiente de revision",
+        "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v01_f736_1223_904_847_564.jpg"
+      },
+      {
+        "trayectoria_id": 3,
+        "placa": "PCG3981",
+        "hora_paso": "2026-09-09 16:19:02",
+        "tiempo_video": "01:46",
+        "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+        "tipo_vehiculo": "automovil",
+        "sentido": "entra",
+        "confianza": 0.971,
+        "consenso": 0.068,
+        "lecturas": 1,
+        "estado": "pendiente de revision",
+        "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v02_f2605_1630_570_879_749.jpg"
+      },
+      {
+        "trayectoria_id": 4,
+        "placa": "TAA2204",
+        "hora_paso": "2026-09-09 16:19:10",
+        "tiempo_video": "01:54",
+        "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+        "tipo_vehiculo": "automovil",
+        "sentido": "entra",
+        "confianza": 0.953,
+        "consenso": 0.395,
+        "lecturas": 5,
+        "estado": "pendiente de revision",
+        "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v03_f2959_987_755_558_303.jpg"
+      },
+      {
+        "trayectoria_id": 7,
+        "placa": "JUO1168",
+        "hora_paso": "2026-09-09 16:19:17",
+        "tiempo_video": "02:01",
+        "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+        "tipo_vehiculo": "automovil",
+        "sentido": "entra",
+        "confianza": 0.772,
+        "consenso": 0.566,
+        "lecturas": 1,
+        "estado": "pendiente de revision",
+        "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v04_f3043_492_1070_352_413.jpg"
+      },
+      {
+        "trayectoria_id": 10,
+        "placa": "GB9795",
+        "hora_paso": "2026-09-09 16:21:46",
+        "tiempo_video": "04:30",
+        "video": "Camara Placas 2_20260909105651-20260909163038(60).mp4",
+        "tipo_vehiculo": "motocicleta",
+        "sentido": "entra",
+        "confianza": 0.711,
+        "consenso": 0.127,
+        "lecturas": 1,
+        "estado": "pendiente de revision",
+        "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(60)_v05_f6699_1338_793_993_657.jpg"
+      }
+    ],
+    "Camara Placas 2_20260909105651-20260909163038(61).mp4": [
+      {
+        "trayectoria_id": 4,
+        "placa": "IC138",
+        "hora_paso": "2026-09-09 16:24:11",
+        "tiempo_video": "01:25",
+        "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+        "tipo_vehiculo": "motocicleta",
+        "sentido": "sale",
+        "confianza": 0.582,
+        "consenso": 0.358,
+        "lecturas": 1,
+        "estado": "pendiente de revision",
+        "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v02_f2059_1298_623_1031_692.jpg"
+      },
+      {
+        "trayectoria_id": 1,
+        "placa": "BAC2573",
+        "hora_paso": "2026-09-09 16:24:11",
+        "tiempo_video": "01:25",
+        "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+        "tipo_vehiculo": "automovil",
+        "sentido": "sale",
+        "confianza": 0.947,
+        "consenso": 0.223,
+        "lecturas": 9,
+        "estado": "pendiente de revision",
+        "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v01_f1933_1179_610_355_398.jpg"
+      },
+      {
+        "trayectoria_id": 7,
+        "placa": "PAB6741",
+        "hora_paso": "2026-09-09 16:28:03",
+        "tiempo_video": "05:17",
+        "video": "Camara Placas 2_20260909105651-20260909163038(61).mp4",
+        "tipo_vehiculo": "automovil",
+        "sentido": "sale",
+        "confianza": 0.955,
+        "consenso": 0.74,
+        "lecturas": 33,
+        "estado": "validado",
+        "imagen": "recortes/Camara Placas 2_20260909105651-20260909163038(61)_v03_f7763_950_549_292_391.jpg"
+      }
+    ]
+  },
+  "manifiesto_checkpoint": {
+    "modelo_vehiculos": "yolo26n",
+    "confianza_minima": 0.5,
+    "tamano_entrada": [
+      640,
+      640
+    ],
+    "peso_hash": "59eef69a9767603006ebdc0dcb4dcf31c826bd30932f9445abb41840002a5946"
+  },
+  "errores": []
+}

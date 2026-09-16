@@ -36,7 +36,8 @@ def test_error_de_evidencia_no_guarda_checkpoint(monkeypatch, tmp_path, error, c
     video.touch()
     args = NS(carpeta=str(tmp_path), out_dir=str(tmp_path / "salida"),
               config="unused", acelerador="cpu", limite=None, reiniciar=False,
-              solo_informe=False)
+              solo_informe=False, paso=3, paso_movimiento=1, escala_movimiento=.25,
+              observaciones_minimas=10, umbral=.75, minimo_lecturas=2)
     avance = Mock()
     avance.videos_hechos = ()
     avance.ruta = tmp_path / "avance.json"
@@ -49,7 +50,7 @@ def test_error_de_evidencia_no_guarda_checkpoint(monkeypatch, tmp_path, error, c
     monkeypatch.setattr(lote, "elegir_proveedores", lambda a: ("CPUExecutionProvider",))
     monkeypatch.setattr(lote, "listar_videos", lambda *a: [video])
     monkeypatch.setattr(lote, "obtener_metadatos_video", lambda p: NS(total_cuadros=10))
-    monkeypatch.setattr(lote, "Checkpoint", lambda p: avance)
+    monkeypatch.setattr(lote, "Checkpoint", lambda p, **kwargs: avance)
     monkeypatch.setattr(lote, "cargar_plantillas", lambda: None)
     monkeypatch.setattr(lote, "LectorPlacas", lambda **k: object())
     monkeypatch.setattr(lote, "procesar_video", Mock(side_effect=error))
@@ -83,6 +84,8 @@ def test_reutilizacion_de_sesiones_y_reinicio_de_seguimiento_entre_videos(monkey
         paso_movimiento=1,
         escala_movimiento=0.25,
         observaciones_minimas=10,
+        umbral=.75,
+        minimo_lecturas=2,
     )
 
     mock_detector_instancia = Mock(name="detector_vehiculos_instancia", sesion=object())
@@ -118,7 +121,7 @@ def test_reutilizacion_de_sesiones_y_reinicio_de_seguimiento_entre_videos(monkey
     monkeypatch.setattr(lote, "elegir_proveedores", lambda a: ("CPUExecutionProvider",))
     monkeypatch.setattr(lote, "listar_videos", lambda *a: [video1, video2])
     monkeypatch.setattr(lote, "obtener_metadatos_video", lambda p: NS(total_cuadros=100))
-    monkeypatch.setattr(lote, "Checkpoint", lambda p: avance)
+    monkeypatch.setattr(lote, "Checkpoint", lambda p, **kwargs: avance)
     monkeypatch.setattr(lote, "cargar_plantillas", lambda: None)
     monkeypatch.setattr(lote, "LectorPlacas", mock_lector_clase)
     monkeypatch.setattr(lote, "DetectorVehiculos", mock_detector_clase)

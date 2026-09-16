@@ -77,7 +77,7 @@ def ejecutar(comando, repo, log):
         raise RuntimeError(f'El proceso terminó con código {codigo}. Revisa {log}.')
 
 
-def procesar(videos, salida, python, repo, limite=None, local='/content', runner=ejecutar, acelerador='gpu', paso=3):
+def procesar(videos, salida, python, repo, limite=None, local='/content', runner=ejecutar, acelerador='gpu', paso=3, modelo_vehiculos=None):
     """Procesa videos en Colab reutilizando los modelos en un único proceso, copiando archivo por archivo a disco local."""
     salida = Path(salida)
     salida.mkdir(parents=True, exist_ok=True)
@@ -109,6 +109,8 @@ def procesar(videos, salida, python, repo, limite=None, local='/content', runner
             '--escala-movimiento', '0.25',
             '--observaciones-minimas', '10'
         ]
+        if modelo_vehiculos:
+            comando.extend(['--modelo-vehiculos', str(modelo_vehiculos)])
 
         runner(comando, repo, salida / 'procesamiento.log')
 

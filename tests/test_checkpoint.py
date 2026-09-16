@@ -88,3 +88,43 @@ def test_nombre_vacio_se_rechaza(tmp_path):
     """Un video sin nombre no puede registrarse."""
     with pytest.raises(CheckpointError, match="nombre"):
         Checkpoint(tmp_path).guardar_video("", [])
+
+
+def test_guarda_y_recupera_manifiesto(tmp_path):
+    """El checkpoint debe persistir el manifiesto de la corrida."""
+    manifiesto = {"modelo_vehiculos": "yolo26n", "peso_hash": "abc123hash"}
+    avance = Checkpoint(tmp_path, manifiesto=manifiesto)
+    avance.guardar_video("v1.mp4", _filas("PCW2497"))
+
+    reanudado = Checkpoint(tmp_path, manifiesto=manifiesto)
+    assert reanudado.manifiesto == manifiesto
+    assert reanudado.esta_hecho("v1.mp4")
+
+
+def test_rechaza_manifiesto_incompatible(tmp_path):
+    """Reanudar con un modelo o pesos distintos debe lanzar CheckpointError."""
+    manifiesto1 = {"modelo_vehiculos": "rf-detr-nano-384-coco", "peso_hash": "hash_a"}
+    avance = Checkpoint(tmp_path, manifiesto=manifiesto1)
+    avance.guardar_video("v1.mp4", _filas("PCW2497"))
+
+    manifiesto2 = {"modelo_vehiculos": "yolo26n", "peso_hash": "hash_b"}
+    with pytest.raises(CheckpointError, match="Conflicto en checkpoint"):
+        Checkpoint(tmp_path, manifiesto=manifiesto2)
+
+
+def test_rechaza_checkpoint_sin_identidad_cuando_se_espera_modelo(tmp_path):
+    """Un checkpoint previo sin manifiesto no debe aceptarse para una corrida con modelo."""
+    avance_sin_id = Checkpoint(tmp_path)
+    avance_sin_id.guardar_video("v1.mp4", _filas("PCW2497"))
+
+    manifiesto_yolo = {"modelo_vehiculos": "yolo26n"}
+    with pytest.raises(CheckpointError, match="no tiene manifiesto de identidad"):
+        Checkpoint(tmp_path, manifiesto=manifiesto_yolo)
+
+
+@pytest.mark.parametrize("cambio", [{"peso_hash": "nuevo"}, {"paso": 4}, {"tamano_entrada": [320, 320]}])
+def test_rechaza_campos_ausentes_o_modificados(tmp_path, cambio):
+    base = {"modelo_vehiculos": "yolo26n", "paso": 3}
+    Checkpoint(tmp_path, manifiesto=base).guardar_video("v.mp4", [])
+    with pytest.raises(CheckpointError):
+        Checkpoint(tmp_path, manifiesto={**base, **cambio})

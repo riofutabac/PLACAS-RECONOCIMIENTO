@@ -1,0 +1,13 @@
+Probando 700 a 760 de Video 60...
+{'hilos_onnx': 'None', 'hilos_opencv': 'None', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 11.966, 'detector_vehiculos': 1.994, 'movimiento': 0.586, 'ronda': 1}
+{'hilos_onnx': '2', 'hilos_opencv': '2', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 11.546, 'detector_vehiculos': 1.988, 'movimiento': 0.607, 'ronda': 1}
+{'hilos_onnx': '2', 'hilos_opencv': '1', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 12.721, 'detector_vehiculos': 1.606, 'movimiento': 1.301, 'ronda': 1}
+{'hilos_onnx': '3', 'hilos_opencv': '1', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 12.658, 'detector_vehiculos': 1.545, 'movimiento': 0.912, 'ronda': 1}
+{'hilos_onnx': '3', 'hilos_opencv': '1', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 12.898, 'detector_vehiculos': 1.555, 'movimiento': 0.909, 'ronda': 2}
+{'hilos_onnx': '2', 'hilos_opencv': '1', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 12.788, 'detector_vehiculos': 1.436, 'movimiento': 0.893, 'ronda': 2}
+{'hilos_onnx': '2', 'hilos_opencv': '2', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 12.161, 'detector_vehiculos': 1.537, 'movimiento': 0.671, 'ronda': 2}
+{'hilos_onnx': 'None', 'hilos_opencv': 'None', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 12.004, 'detector_vehiculos': 1.559, 'movimiento': 0.694, 'ronda': 2}
+{'hilos_onnx': 'None', 'hilos_opencv': 'None', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 12.395, 'detector_vehiculos': 1.575, 'movimiento': 0.719, 'ronda': 3}
+{'hilos_onnx': '2', 'hilos_opencv': '2', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 11.927, 'detector_vehiculos': 1.567, 'movimiento': 0.716, 'ronda': 3}
+{'hilos_onnx': '2', 'hilos_opencv': '1', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 12.352, 'detector_vehiculos': 1.605, 'movimiento': 0.964, 'ronda': 3}
+{'hilos_onnx': '3', 'hilos_opencv': '1', 'opencv_efectivos': 4, 'cuadros_segmento': 60, 'inferencias': 13, 'duracion_total': 13.538, 'detector_vehiculos': 2.405, 'movimiento': 1.114, 'ronda': 3}

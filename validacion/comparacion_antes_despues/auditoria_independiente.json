@@ -1,0 +1,159 @@
+{
+  "corridas": [
+    {
+      "corrida": "ronda_1_actual",
+      "segundos": 838.534,
+      "pico_rss_mib": 597.97,
+      "codigo_salida": 0,
+      "registros": 8,
+      "cuadros_metadatos": 16454,
+      "firma_registros": "e164c85b9d943d96e6274c97e0a56a907414665f5191fde64f17a7f9883cda2d",
+      "firmas_evidencias": [
+        "8c0e35b29245de33213367396e62ef64d26a9ea963d922f522131e24a38001ef",
+        "b1747d5f6ac6f7bd57bc680f387159b5495d4c1c745357555e9070ed59e8a0a0",
+        "d88867c995c9cb19f1b39bff47a8b93d64a8e7c0706e93b918a4d21d95051eeb",
+        "970be8cff20448e2efc707f214d0fb6a4d29ed4abb35da705089f7a0e6e10829",
+        "62a829e1575cb194affc79d4d583c78b3dac3014d06de42421ddacfb84c4b7bb",
+        "0325486ef3d549903e00f9c22ca62f656b311f032daba50c9a655073f85c7697",
+        "fcf8a3d707382231cb52ad449a0ef417f6b00bc7268a75750a58b04055f580f0",
+        "0292f9d7d3efae670e1c3659b6f6389b0f42fcc95019459a879d92e4c96bdd0e"
+      ],
+      "filas_excel": 9,
+      "imagenes_excel": 8,
+      "errores_resumen_original": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "corrida": "ronda_1_anterior",
+      "segundos": 1241.887,
+      "pico_rss_mib": 631.96,
+      "codigo_salida": 0,
+      "registros": 8,
+      "cuadros_metadatos": 16454,
+      "firma_registros": "e164c85b9d943d96e6274c97e0a56a907414665f5191fde64f17a7f9883cda2d",
+      "firmas_evidencias": [
+        "8c0e35b29245de33213367396e62ef64d26a9ea963d922f522131e24a38001ef",
+        "b1747d5f6ac6f7bd57bc680f387159b5495d4c1c745357555e9070ed59e8a0a0",
+        "d88867c995c9cb19f1b39bff47a8b93d64a8e7c0706e93b918a4d21d95051eeb",
+        "970be8cff20448e2efc707f214d0fb6a4d29ed4abb35da705089f7a0e6e10829",
+        "62a829e1575cb194affc79d4d583c78b3dac3014d06de42421ddacfb84c4b7bb",
+        "0325486ef3d549903e00f9c22ca62f656b311f032daba50c9a655073f85c7697",
+        "fcf8a3d707382231cb52ad449a0ef417f6b00bc7268a75750a58b04055f580f0",
+        "0292f9d7d3efae670e1c3659b6f6389b0f42fcc95019459a879d92e4c96bdd0e"
+      ],
+      "filas_excel": 9,
+      "imagenes_excel": 8,
+      "errores_resumen_original": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "corrida": "ronda_2_actual",
+      "segundos": 834.757,
+      "pico_rss_mib": 597.39,
+      "codigo_salida": 0,
+      "registros": 8,
+      "cuadros_metadatos": 16454,
+      "firma_registros": "e164c85b9d943d96e6274c97e0a56a907414665f5191fde64f17a7f9883cda2d",
+      "firmas_evidencias": [
+        "8c0e35b29245de33213367396e62ef64d26a9ea963d922f522131e24a38001ef",
+        "b1747d5f6ac6f7bd57bc680f387159b5495d4c1c745357555e9070ed59e8a0a0",
+        "d88867c995c9cb19f1b39bff47a8b93d64a8e7c0706e93b918a4d21d95051eeb",
+        "970be8cff20448e2efc707f214d0fb6a4d29ed4abb35da705089f7a0e6e10829",
+        "62a829e1575cb194affc79d4d583c78b3dac3014d06de42421ddacfb84c4b7bb",
+        "0325486ef3d549903e00f9c22ca62f656b311f032daba50c9a655073f85c7697",
+        "fcf8a3d707382231cb52ad449a0ef417f6b00bc7268a75750a58b04055f580f0",
+        "0292f9d7d3efae670e1c3659b6f6389b0f42fcc95019459a879d92e4c96bdd0e"
+      ],
+      "filas_excel": 9,
+      "imagenes_excel": 8,
+      "errores_resumen_original": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "corrida": "ronda_2_anterior",
+      "segundos": 1277.054,
+      "pico_rss_mib": 677.23,
+      "codigo_salida": 0,
+      "registros": 8,
+      "cuadros_metadatos": 16454,
+      "firma_registros": "e164c85b9d943d96e6274c97e0a56a907414665f5191fde64f17a7f9883cda2d",
+      "firmas_evidencias": [
+        "8c0e35b29245de33213367396e62ef64d26a9ea963d922f522131e24a38001ef",
+        "b1747d5f6ac6f7bd57bc680f387159b5495d4c1c745357555e9070ed59e8a0a0",
+        "d88867c995c9cb19f1b39bff47a8b93d64a8e7c0706e93b918a4d21d95051eeb",
+        "970be8cff20448e2efc707f214d0fb6a4d29ed4abb35da705089f7a0e6e10829",
+        "62a829e1575cb194affc79d4d583c78b3dac3014d06de42421ddacfb84c4b7bb",
+        "0325486ef3d549903e00f9c22ca62f656b311f032daba50c9a655073f85c7697",
+        "fcf8a3d707382231cb52ad449a0ef417f6b00bc7268a75750a58b04055f580f0",
+        "0292f9d7d3efae670e1c3659b6f6389b0f42fcc95019459a879d92e4c96bdd0e"
+      ],
+      "filas_excel": 9,
+      "imagenes_excel": 8,
+      "errores_resumen_original": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "corrida": "ronda_3_actual",
+      "segundos": 1144.572,
+      "pico_rss_mib": 595.07,
+      "codigo_salida": 0,
+      "registros": 8,
+      "cuadros_metadatos": 16454,
+      "firma_registros": "e164c85b9d943d96e6274c97e0a56a907414665f5191fde64f17a7f9883cda2d",
+      "firmas_evidencias": [
+        "8c0e35b29245de33213367396e62ef64d26a9ea963d922f522131e24a38001ef",
+        "b1747d5f6ac6f7bd57bc680f387159b5495d4c1c745357555e9070ed59e8a0a0",
+        "d88867c995c9cb19f1b39bff47a8b93d64a8e7c0706e93b918a4d21d95051eeb",
+        "970be8cff20448e2efc707f214d0fb6a4d29ed4abb35da705089f7a0e6e10829",
+        "62a829e1575cb194affc79d4d583c78b3dac3014d06de42421ddacfb84c4b7bb",
+        "0325486ef3d549903e00f9c22ca62f656b311f032daba50c9a655073f85c7697",
+        "fcf8a3d707382231cb52ad449a0ef417f6b00bc7268a75750a58b04055f580f0",
+        "0292f9d7d3efae670e1c3659b6f6389b0f42fcc95019459a879d92e4c96bdd0e"
+      ],
+      "filas_excel": 9,
+      "imagenes_excel": 8,
+      "errores_resumen_original": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "corrida": "ronda_3_anterior",
+      "segundos": 1196.252,
+      "pico_rss_mib": 691.31,
+      "codigo_salida": 0,
+      "registros": 8,
+      "cuadros_metadatos": 16454,
+      "firma_registros": "e164c85b9d943d96e6274c97e0a56a907414665f5191fde64f17a7f9883cda2d",
+      "firmas_evidencias": [
+        "8c0e35b29245de33213367396e62ef64d26a9ea963d922f522131e24a38001ef",
+        "b1747d5f6ac6f7bd57bc680f387159b5495d4c1c745357555e9070ed59e8a0a0",
+        "d88867c995c9cb19f1b39bff47a8b93d64a8e7c0706e93b918a4d21d95051eeb",
+        "970be8cff20448e2efc707f214d0fb6a4d29ed4abb35da705089f7a0e6e10829",
+        "62a829e1575cb194affc79d4d583c78b3dac3014d06de42421ddacfb84c4b7bb",
+        "0325486ef3d549903e00f9c22ca62f656b311f032daba50c9a655073f85c7697",
+        "fcf8a3d707382231cb52ad449a0ef417f6b00bc7268a75750a58b04055f580f0",
+        "0292f9d7d3efae670e1c3659b6f6389b0f42fcc95019459a879d92e4c96bdd0e"
+      ],
+      "filas_excel": 9,
+      "imagenes_excel": 8,
+      "errores_resumen_original": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    }
+  ],
+  "registros_identicos": true,
+  "evidencias_identicas": true,
+  "media_anterior_s": 1238.3976666666667,
+  "media_actual_s": 939.2876666666666,
+  "ahorro_porcentaje": 24.152984784370567,
+  "limites": [
+    "Sin telemetría térmica: causa de la ronda lenta desconocida",
+    "RSS por proceso no prueba ausencia de fugas",
+    "Cuadros del checkpoint son metadatos, no conteo de cuadros decodificados",
+    "Identidad de salidas no equivale a exactitud frente a verdad manual"
+  ]
+}

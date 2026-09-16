@@ -381,3 +381,15 @@ def test_detector_vehiculos_acepta_hilos(config_zona):
     """DetectorVehiculos debe aceptar el parámetro hilos para configurar CPU."""
     detector = DetectorVehiculos(config_zona, detector=_DetectorFalso([]), hilos=2)
     assert detector is not None
+
+
+def test_detector_vehiculos_selecciona_yolo(monkeypatch, config_zona):
+    """DetectorVehiculos con modelo 'yolo26n' debe instanciar YOLO26Detector."""
+    from unittest.mock import MagicMock
+    import lastre.vehiculos as veh_mod
+
+    mock_yolo = MagicMock()
+    monkeypatch.setattr("lastre.yolo.YOLO26Detector", lambda *a, **k: mock_yolo)
+
+    detector = DetectorVehiculos(config_zona, modelo="yolo26n")
+    assert detector.sesion is mock_yolo

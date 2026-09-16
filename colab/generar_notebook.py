@@ -40,7 +40,7 @@ def correr(cmd, **kw):
         raise RuntimeError('Fallo: ' + ' '.join(str(c) for c in cmd))
     return r
 
-RAMA = 'codex/base-rapida-paso1' #@param {type:"string"}
+RAMA = 'codex/experimento-yolo26' #@param {type:"string"}
 URL = 'https://github.com/riofutabac/PLACAS-RECONOCIMIENTO.git'
 
 if not Path('/content').exists():
@@ -183,6 +183,7 @@ ejecuta los pasos 1–4 y después este paso con `MODO = 'lote'`.
 Se repite únicamente el video que no alcanzó a terminar. No ejecutes dos sesiones sobre la misma salida.
 ''')
     code('''MODO = 'prueba' #@param ["prueba", "lote"]
+MODELO_VEHICULOS = 'rf-detr-nano-384-coco' #@param ["rf-detr-nano-384-coco", "yolo26n", "yolo26s"]
 ZONA_CORRECTA = False #@param {type:"boolean"}
 
 if not globals().get('COMPROBACION_LISTA', False):
@@ -191,7 +192,7 @@ if not ZONA_CORRECTA:
     raise RuntimeError('Revisa la imagen del paso 4 y marca ZONA_CORRECTA = True.')
 if MODO not in ('prueba', 'lote'):
     raise ValueError("MODO debe ser 'prueba' o 'lote'.")
-flujo.procesar(VIDEOS, SALIDA, PYTHON, REPO, limite=1 if MODO == 'prueba' else None, acelerador=globals().get('ACELERADOR', 'gpu'))
+flujo.procesar(VIDEOS, SALIDA, PYTHON, REPO, limite=1 if MODO == 'prueba' else None, acelerador=globals().get('ACELERADOR', 'gpu'), modelo_vehiculos=MODELO_VEHICULOS)
 ''')
     md('## 6. Ver y descargar el Excel\nEl Excel incluye los resultados acumulados. Las placas pendientes necesitan revisión; una confianza alta por sí sola no garantiza que la placa sea correcta.')
     code('''from IPython.display import HTML, display

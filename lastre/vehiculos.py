@@ -97,6 +97,18 @@ class DetectorVehiculos:
 
         if detector is not None:
             self._detector = detector
+        elif isinstance(modelo, str) and (
+            modelo.lower().startswith("yolo26") or modelo.lower().endswith(".onnx")
+        ):
+            from lastre.yolo import YOLO26Detector, YOLODeteccionError
+            try:
+                self._detector = YOLO26Detector(
+                    modelo=modelo,
+                    proveedores=proveedores,
+                    hilos=hilos,
+                )
+            except YOLODeteccionError as exc:
+                raise VehiculoDeteccionError(str(exc)) from exc
         else:
             try:
                 from open_image_models import create_detector

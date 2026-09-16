@@ -1,0 +1,406 @@
+{
+  "fecha": "2026-09-15T17:12:00.748929",
+  "commit_anterior": "bc0859f",
+  "commit_actual": "cb876a8",
+  "estadisticas": {
+    "anterior": {
+      "tiempos": [
+        1241.887,
+        1277.054,
+        1196.252
+      ],
+      "media_segundos": 1238.4,
+      "desviacion_segundos": 40.51,
+      "pico_rss_mb_lista": [
+        631.96,
+        677.23,
+        691.31
+      ],
+      "media_rss_mb": 666.83
+    },
+    "actual": {
+      "tiempos": [
+        838.534,
+        834.757,
+        1144.572
+      ],
+      "media_segundos": 939.29,
+      "desviacion_segundos": 177.79,
+      "pico_rss_mb_lista": [
+        597.97,
+        597.39,
+        595.07
+      ],
+      "media_rss_mb": 596.81
+    },
+    "comparacion": {
+      "ahorro_segundos": 299.11,
+      "ahorro_porcentaje": 24.15,
+      "variacion_memoria_mb": -70.02
+    }
+  },
+  "auditoria_vehiculos": {
+    "Camara Placas 2_20260909105651-20260909163038(60).mp4": [
+      {
+        "indice": 1,
+        "hora_reloj_esperada": "16:17:46",
+        "sentido_esperado": "sale",
+        "placa_esperada": "PCM2497",
+        "placa_real": "PCM2497",
+        "estado_esperado": "pendiente de revision",
+        "corridas": {
+          "ronda_1_anterior": {
+            "hallado": false
+          },
+          "ronda_1_actual": {
+            "hallado": false
+          },
+          "ronda_2_actual": {
+            "hallado": false
+          },
+          "ronda_2_anterior": {
+            "hallado": false
+          },
+          "ronda_3_anterior": {
+            "hallado": false
+          },
+          "ronda_3_actual": {
+            "hallado": false
+          }
+        }
+      },
+      {
+        "indice": 2,
+        "hora_reloj_esperada": "16:19:03",
+        "sentido_esperado": "entra",
+        "placa_esperada": "PCG3981",
+        "placa_real": "PCG3981",
+        "estado_esperado": "pendiente de revision",
+        "corridas": {
+          "ronda_1_anterior": {
+            "hallado": false
+          },
+          "ronda_1_actual": {
+            "hallado": false
+          },
+          "ronda_2_actual": {
+            "hallado": false
+          },
+          "ronda_2_anterior": {
+            "hallado": false
+          },
+          "ronda_3_anterior": {
+            "hallado": false
+          },
+          "ronda_3_actual": {
+            "hallado": false
+          }
+        }
+      },
+      {
+        "indice": 3,
+        "hora_reloj_esperada": "16:19:10",
+        "sentido_esperado": "entra",
+        "placa_esperada": "TAA2204",
+        "placa_real": "TAA2204",
+        "estado_esperado": "validado",
+        "corridas": {
+          "ronda_1_anterior": {
+            "hallado": false
+          },
+          "ronda_1_actual": {
+            "hallado": false
+          },
+          "ronda_2_actual": {
+            "hallado": false
+          },
+          "ronda_2_anterior": {
+            "hallado": false
+          },
+          "ronda_3_anterior": {
+            "hallado": false
+          },
+          "ronda_3_actual": {
+            "hallado": false
+          }
+        }
+      },
+      {
+        "indice": 4,
+        "hora_reloj_esperada": "16:19:17",
+        "sentido_esperado": "entra",
+        "placa_esperada": "JJ4306",
+        "placa_real": "JJ4306",
+        "estado_esperado": "pendiente de revision",
+        "corridas": {
+          "ronda_1_anterior": {
+            "hallado": false
+          },
+          "ronda_1_actual": {
+            "hallado": false
+          },
+          "ronda_2_actual": {
+            "hallado": false
+          },
+          "ronda_2_anterior": {
+            "hallado": false
+          },
+          "ronda_3_anterior": {
+            "hallado": false
+          },
+          "ronda_3_actual": {
+            "hallado": false
+          }
+        }
+      },
+      {
+        "indice": 5,
+        "hora_reloj_esperada": "16:21:46",
+        "sentido_esperado": "entra",
+        "placa_esperada": "VE9715",
+        "placa_real": null,
+        "estado_esperado": "pendiente de revision",
+        "corridas": {
+          "ronda_1_anterior": {
+            "hallado": false
+          },
+          "ronda_1_actual": {
+            "hallado": false
+          },
+          "ronda_2_actual": {
+            "hallado": false
+          },
+          "ronda_2_anterior": {
+            "hallado": false
+          },
+          "ronda_3_anterior": {
+            "hallado": false
+          },
+          "ronda_3_actual": {
+            "hallado": false
+          }
+        }
+      }
+    ],
+    "Camara Placas 2_20260909105651-20260909163038(61).mp4": [
+      {
+        "indice": 1,
+        "hora_reloj_esperada": "16:24:11",
+        "sentido_esperado": "sale",
+        "placa_esperada": "BAC2573",
+        "placa_real": "PAC2573",
+        "estado_esperado": "pendiente de revision",
+        "corridas": {
+          "ronda_1_anterior": {
+            "hallado": false
+          },
+          "ronda_1_actual": {
+            "hallado": false
+          },
+          "ronda_2_actual": {
+            "hallado": false
+          },
+          "ronda_2_anterior": {
+            "hallado": false
+          },
+          "ronda_3_anterior": {
+            "hallado": false
+          },
+          "ronda_3_actual": {
+            "hallado": false
+          }
+        }
+      },
+      {
+        "indice": 2,
+        "hora_reloj_esperada": "16:26:11",
+        "sentido_esperado": "sale",
+        "placa_esperada": "MZS872",
+        "placa_real": "MZS872",
+        "estado_esperado": "pendiente de revision",
+        "corridas": {
+          "ronda_1_anterior": {
+            "hallado": false
+          },
+          "ronda_1_actual": {
+            "hallado": false
+          },
+          "ronda_2_actual": {
+            "hallado": false
+          },
+          "ronda_2_anterior": {
+            "hallado": false
+          },
+          "ronda_3_anterior": {
+            "hallado": false
+          },
+          "ronda_3_actual": {
+            "hallado": false
+          }
+        }
+      },
+      {
+        "indice": 3,
+        "hora_reloj_esperada": "16:28:03",
+        "sentido_esperado": "sale",
+        "placa_esperada": "PAB6741",
+        "placa_real": "PAB6741",
+        "estado_esperado": "validado",
+        "corridas": {
+          "ronda_1_anterior": {
+            "hallado": false
+          },
+          "ronda_1_actual": {
+            "hallado": false
+          },
+          "ronda_2_actual": {
+            "hallado": false
+          },
+          "ronda_2_anterior": {
+            "hallado": false
+          },
+          "ronda_3_anterior": {
+            "hallado": false
+          },
+          "ronda_3_actual": {
+            "hallado": false
+          }
+        }
+      }
+    ]
+  },
+  "corridas": [
+    {
+      "ronda": "ronda_1",
+      "version": "anterior",
+      "commit": "bc0859f",
+      "directorio_salida": "/Users/desarrollopashq/Documents/GitHub/PlacasVideos/validacion/comparacion_antes_despues/ronda_1_anterior",
+      "tiempo_total_segundos": 1241.887,
+      "tiempo_real_segundos": 1241.9,
+      "tiempo_usuario_segundos": 1672.18,
+      "tiempo_sistema_segundos": 70.4,
+      "pico_rss_mb": 631.96,
+      "pico_rss_bytes": 662654976,
+      "codigo_salida": 0,
+      "cuadros_analizados": 0,
+      "vehiculos_totales": 0,
+      "excel_existe": true,
+      "excel_tamano_bytes": 1731370,
+      "desglose_etapas": {},
+      "vehiculos_por_video": {},
+      "errores": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "ronda": "ronda_1",
+      "version": "actual",
+      "commit": "cb876a8",
+      "directorio_salida": "/Users/desarrollopashq/Documents/GitHub/PlacasVideos/validacion/comparacion_antes_despues/ronda_1_actual",
+      "tiempo_total_segundos": 838.534,
+      "tiempo_real_segundos": 838.54,
+      "tiempo_usuario_segundos": 1436.59,
+      "tiempo_sistema_segundos": 65.93,
+      "pico_rss_mb": 597.97,
+      "pico_rss_bytes": 627019776,
+      "codigo_salida": 0,
+      "cuadros_analizados": 0,
+      "vehiculos_totales": 0,
+      "excel_existe": true,
+      "excel_tamano_bytes": 1731371,
+      "desglose_etapas": {},
+      "vehiculos_por_video": {},
+      "errores": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "ronda": "ronda_2",
+      "version": "actual",
+      "commit": "cb876a8",
+      "directorio_salida": "/Users/desarrollopashq/Documents/GitHub/PlacasVideos/validacion/comparacion_antes_despues/ronda_2_actual",
+      "tiempo_total_segundos": 834.757,
+      "tiempo_real_segundos": 834.76,
+      "tiempo_usuario_segundos": 1366.85,
+      "tiempo_sistema_segundos": 65.12,
+      "pico_rss_mb": 597.39,
+      "pico_rss_bytes": 626409472,
+      "codigo_salida": 0,
+      "cuadros_analizados": 0,
+      "vehiculos_totales": 0,
+      "excel_existe": true,
+      "excel_tamano_bytes": 1731369,
+      "desglose_etapas": {},
+      "vehiculos_por_video": {},
+      "errores": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "ronda": "ronda_2",
+      "version": "anterior",
+      "commit": "bc0859f",
+      "directorio_salida": "/Users/desarrollopashq/Documents/GitHub/PlacasVideos/validacion/comparacion_antes_despues/ronda_2_anterior",
+      "tiempo_total_segundos": 1277.054,
+      "tiempo_real_segundos": 1277.07,
+      "tiempo_usuario_segundos": 1845.63,
+      "tiempo_sistema_segundos": 72.41,
+      "pico_rss_mb": 677.23,
+      "pico_rss_bytes": 710127616,
+      "codigo_salida": 0,
+      "cuadros_analizados": 0,
+      "vehiculos_totales": 0,
+      "excel_existe": true,
+      "excel_tamano_bytes": 1731369,
+      "desglose_etapas": {},
+      "vehiculos_por_video": {},
+      "errores": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "ronda": "ronda_3",
+      "version": "anterior",
+      "commit": "bc0859f",
+      "directorio_salida": "/Users/desarrollopashq/Documents/GitHub/PlacasVideos/validacion/comparacion_antes_despues/ronda_3_anterior",
+      "tiempo_total_segundos": 1196.252,
+      "tiempo_real_segundos": 1196.26,
+      "tiempo_usuario_segundos": 1850.66,
+      "tiempo_sistema_segundos": 69.27,
+      "pico_rss_mb": 691.31,
+      "pico_rss_bytes": 724893696,
+      "codigo_salida": 0,
+      "cuadros_analizados": 0,
+      "vehiculos_totales": 0,
+      "excel_existe": true,
+      "excel_tamano_bytes": 1731371,
+      "desglose_etapas": {},
+      "vehiculos_por_video": {},
+      "errores": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    },
+    {
+      "ronda": "ronda_3",
+      "version": "actual",
+      "commit": "cb876a8",
+      "directorio_salida": "/Users/desarrollopashq/Documents/GitHub/PlacasVideos/validacion/comparacion_antes_despues/ronda_3_actual",
+      "tiempo_total_segundos": 1144.572,
+      "tiempo_real_segundos": 1144.59,
+      "tiempo_usuario_segundos": 1593.66,
+      "tiempo_sistema_segundos": 80.17,
+      "pico_rss_mb": 595.07,
+      "pico_rss_bytes": 623980544,
+      "codigo_salida": 0,
+      "cuadros_analizados": 0,
+      "vehiculos_totales": 0,
+      "excel_existe": true,
+      "excel_tamano_bytes": 1731370,
+      "desglose_etapas": {},
+      "vehiculos_por_video": {},
+      "errores": [
+        "Error parseando avance.json: 'int' object has no attribute 'get'"
+      ]
+    }
+  ]
+}

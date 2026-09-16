@@ -91,6 +91,9 @@ def parse_args():
                         help="Lecturas coincidentes mínimas para validar una placa.")
     parser.add_argument("--observaciones-minimas", type=int, default=10,
                         help="Detecciones mínimas para considerar que hubo un vehículo.")
+    parser.add_argument("--modelo-vehiculos", type=str, default="rf-detr-nano-384-coco",
+                        choices=("rf-detr-nano-384-coco", "yolo26n", "yolo26s"),
+                        help="Modelo para la detección de vehículos.")
     parser.add_argument("--hilos", type=int, default=None,
                         help="Número de hilos de cómputo del modelo en CPU (None para automático).")
     parser.add_argument("--disco-local", type=str, default=None,
@@ -137,7 +140,7 @@ def procesar_video(ruta, config, lector, progreso, args, dir_recortes, proveedor
     if detector_vehiculos is None:
         detector_vehiculos = DetectorVehiculos(
             config,
-            modelo="rf-detr-nano-384-coco",
+            modelo=getattr(args, "modelo_vehiculos", "rf-detr-nano-384-coco"),
             proveedores=proveedores,
             hilos=getattr(args, "hilos", None),
         )
@@ -372,22 +375,11 @@ def main():
         except VideoLecturaError as err:
             print(f"  Aviso: no se pudo leer '{video.name}': {err}", file=sys.stderr)
 
-    avance = Checkpoint(dir_salida)
-    if args.reiniciar:
-        for nombre in list(avance.videos_hechos):
-            avance.olvidar(nombre)
-
-    progreso = Progreso(total_cuadros=total_cuadros, videos_totales=len(videos))
-    progreso.avanzar(avance.cuadros_hechos())
-    progreso.videos_hechos = sum(1 for v in videos if avance.esta_hecho(v.name))
-
-    print(f"Cuadros totales: {total_cuadros:,}")
-    if avance.videos_hechos:
-        print(f"Reanudando: {len(avance.videos_hechos)} videos ya procesados")
-    print(f"Avance: {avance.ruta}")
-    print("=" * 78, flush=True)
-
     if args.solo_informe:
+        avance = Checkpoint(dir_salida)
+        progreso = Progreso(total_cuadros=total_cuadros, videos_totales=len(videos))
+        progreso.avanzar(avance.cuadros_hechos())
+        progreso.videos_hechos = sum(1 for v in videos if avance.esta_hecho(v.name))
         todas_las_filas = avance.todas_las_filas()
         _entregar(todas_las_filas, dir_salida, carpeta, videos, total_cuadros, [], progreso)
         return
@@ -420,14 +412,52 @@ def main():
     # horas creyendo usar la tarjeta. Solo la sesion dice donde se ejecuta.
     # getattr: los dobles de prueba no exponen sesiones y no deben romper.
     modelos = dict(getattr(lector, "sesiones", {}) or {})
+    modelo_vehiculos = getattr(args, "modelo_vehiculos", "rf-detr-nano-384-coco")
     try:
         detector_vehiculos = DetectorVehiculos(
-            config, modelo="rf-detr-nano-384-coco", proveedores=proveedores,
+            config, modelo=modelo_vehiculos, proveedores=proveedores,
             hilos=getattr(args, "hilos", None))
         modelos["detector de vehiculos"] = getattr(detector_vehiculos, "sesion", None)
     except VehiculoDeteccionError as err:
         print(f"Error al iniciar el detector de vehiculos: {err}", file=sys.stderr)
         sys.exit(1)
+
+    manifiesto_ejecucion = {
+        "modelo_vehiculos": modelo_vehiculos,
+        "confianza_minima": 0.5,
+        "tamano_entrada": [640, 640] if "yolo" in modelo_vehiculos else [384, 384],
+        "paso": args.paso,
+        "paso_movimiento": args.paso_movimiento,
+        "escala_movimiento": args.escala_movimiento,
+        "observaciones_minimas": args.observaciones_minimas,
+        "umbral_ocr": args.umbral,
+        "minimo_lecturas": args.minimo_lecturas,
+    }
+    sesion_interna = getattr(detector_vehiculos, "sesion", None)
+    peso_hash = getattr(sesion_interna, "peso_hash", None)
+    if isinstance(peso_hash, str):
+        manifiesto_ejecucion["peso_hash"] = peso_hash
+
+    if args.reiniciar:
+        archivo_avance = dir_salida / "avance.json"
+        if archivo_avance.is_file():
+            archivo_avance.unlink(missing_ok=True)
+
+    try:
+        avance = Checkpoint(dir_salida, manifiesto=manifiesto_ejecucion)
+    except CheckpointError as err:
+        print(f"Error de checkpoint: {err}", file=sys.stderr)
+        sys.exit(1)
+
+    progreso = Progreso(total_cuadros=total_cuadros, videos_totales=len(videos))
+    progreso.avanzar(avance.cuadros_hechos())
+    progreso.videos_hechos = sum(1 for v in videos if avance.esta_hecho(v.name))
+
+    print(f"Cuadros totales: {total_cuadros:,}")
+    if avance.videos_hechos:
+        print(f"Reanudando: {len(avance.videos_hechos)} videos ya procesados")
+    print(f"Avance: {avance.ruta}")
+    print("=" * 78, flush=True)
 
     try:
         todo_bien, informes = verificar_sesiones(modelos, args.acelerador)
