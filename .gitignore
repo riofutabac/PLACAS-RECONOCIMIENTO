@@ -47,5 +47,5 @@ conjunto_evaluacion/
 # Modelos y pesos binarios
 *.onnx
 *.pt
-modelos/*.onnx
+!modelos/*.onnx
 
